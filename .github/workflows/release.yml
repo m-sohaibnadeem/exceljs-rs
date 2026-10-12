@@ -162,7 +162,7 @@ jobs:
     if: ((github.event_name == 'push' && vars.NPM_TRUSTED_PUBLISHING == 'true') || inputs.publish) && startsWith(github.ref, 'refs/tags/v')
     needs: [package, verify]
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 75
     environment: npm
     permissions:
       contents: read
@@ -176,7 +176,9 @@ jobs:
           node-version: 24
           registry-url: https://registry.npmjs.org
       - name: Ensure trusted publishing support
-        run: npm install --global npm@11.12.1
+        run: |
+          npm config delete always-auth --location=user
+          npm install --global npm@11.12.1
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: npm-release
@@ -192,5 +194,5 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           EXCELJS_RS_RELEASE_DIR: ${{ github.workspace }}/release
         run: |
-          node -e "if (!process.env.NODE_AUTH_TOKEN) throw new Error('Set NPM_TOKEN in the npm GitHub environment before bootstrap publication')"
+          node -e "if (!process.env.NODE_AUTH_TOKEN) throw new Error('NPM_TOKEN is missing from GitHub Actions secrets')"
           npm run release:publish-tarballs --prefix crates/exceljs-rs-node

@@ -8,7 +8,77 @@ const {createHash} = require('node:crypto');
 const {spawnSync} = require('node:child_process');
 const pkg = require('../package.json');
 const targets = require('../scripts/release-targets');
-const {validate} = require('../scripts/publish-tarballs');
+const {validate, waitForPublications, publishPackages} = require('../scripts/publish-tarballs');
+
+const examplePackages = ['linux', 'mac', 'windows', 'root'].map(name =>
+  ({name, version: '1.0.0', integrity: 'sha512-' + name}));
+const quiet = () => {};
+
+test('registry waiting handles scans longer than 15 minutes and transient errors', async () => {
+  let elapsed = 0;
+  let calls = 0;
+  const items = examplePackages.slice(0, 3);
+  const available = new Set();
+  await waitForPublications(items, {
+    now: () => elapsed, pause: async ms => { elapsed += ms; }, log: quiet,
+    lookup: async item => {
+      calls++;
+      if (elapsed === 0) throw Object.assign(new Error('Registry unavailable'), {retryable: true});
+      if (item.name === 'linux' || elapsed >= 20 * 60000) {
+        assert.ok(!available.has(item.name), 'Already verified packages should not be polled again');
+        available.add(item.name);
+        return item.integrity;
+      }
+      return null;
+    },
+  });
+  assert.equal(elapsed, 20 * 60000);
+  assert.equal(available.size, 3);
+  assert.ok(calls > 3);
+});
+
+test('registry waiting rejects mismatches, fatal errors, and bounded timeouts', async () => {
+  const items = [examplePackages[0]];
+  await assert.rejects(waitForPublications(items, {lookup: async () => 'wrong', log: quiet}), /integrity mismatch/);
+  await assert.rejects(waitForPublications(items, {lookup: async () => {throw new Error('Forbidden');}, log: quiet}), /Forbidden/);
+  let elapsed = 0;
+  await assert.rejects(waitForPublications(items, {
+    lookup: async () => null, now: () => elapsed, pause: async ms => {elapsed += ms;}, log: quiet,
+  }), /processing or review may still be pending/);
+  assert.equal(elapsed, 30 * 60000);
+});
+
+test('all native uploads precede the availability gate and root publication', async () => {
+  const events = [];
+  await publishPackages(examplePackages, {
+    lookup: async () => null, log: quiet,
+    upload: async item => {events.push('upload:' + item.name);},
+    wait: async items => {events.push('wait:' + items.map(item => item.name).join(','));},
+  });
+  assert.deepEqual(events, ['upload:linux', 'upload:mac', 'upload:windows', 'wait:linux,mac,windows', 'upload:root', 'wait:root']);
+});
+
+test('resume skips matching archives and rejects conflicts before any upload', async () => {
+  const uploads = [];
+  await publishPackages(examplePackages, {
+    lookup: async item => item.name === 'mac' ? null : item.integrity,
+    upload: async item => {uploads.push(item.name);}, wait: async () => {}, log: quiet,
+  });
+  assert.deepEqual(uploads, ['mac']);
+  await assert.rejects(publishPackages(examplePackages, {
+    lookup: async item => item.name === 'root' ? 'wrong' : null,
+    upload: async () => {assert.fail('Must check every version before uploading');}, log: quiet,
+  }), /differs from this archive/);
+});
+
+test('root is never uploaded when native verification fails', async () => {
+  const uploads = [];
+  await assert.rejects(publishPackages(examplePackages, {
+    lookup: async () => null, upload: async item => {uploads.push(item.name);},
+    wait: async () => {throw new Error('still processing');}, log: quiet,
+  }), /still processing/);
+  assert.deepEqual(uploads, ['linux', 'mac', 'windows']);
+});
 
 test('release archives require the exact package set and matching checksums', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'exceljs-rs-release-test-'));

@@ -26,37 +26,33 @@ Keep the version in `Cargo.toml`, `Cargo.lock`, and
 changing package metadata. Add release notes in `CHANGELOG.md` and run the
 checks in [CONTRIBUTING.md](CONTRIBUTING.md).
 
-After committing and pushing the repository, wait for CI. Enable private
-vulnerability reporting, secret scanning, push protection where available,
-and branch protection requiring CI. Create an `npm` environment restricted
-to release tags, with a required reviewer if supported by the repository plan.
+The public repository has private vulnerability reporting, secret scanning,
+push protection, Dependabot security updates, and branch rules requiring CI.
+The `npm` environment permits `v*` release tags and requires maintainer approval.
+Repository administrators can bypass the main branch rules.
 
 ## First publication through GitHub Actions
 
 1. Push this source to the public repository named above. No Git initialization
    or remote creation is performed by the release scripts.
-2. Create a GitHub environment named `npm`. Restrict its deployment tags to
-   `v*` and add a required reviewer if available. Enable Actions for the repository.
+2. The `npm` deployment environment is configured for `v*` tags with maintainer
+   approval. The bootstrap `NPM_TOKEN` secret is configured in repository Actions secrets.
 3. Run **Release** manually on `main` with **publish = false**. Leave
    authentication as **trusted**. This builds all five platforms, runs CI, and
    tests the packed files on all five platforms with Node.js 22 and 24. It does
    not publish. Resolve any failures before continuing.
-4. For packages that do not yet have trusted publishing, create a short-lived
-   npm granular access token with **Read and write (publish and stage)** and
-   **Bypass two-factor authentication**. It needs permission to create and
-   publish all six package names. For these new unscoped names, that may require
-   access to all packages on the publishing account; use this only for bootstrap.
-   Store it as the `NPM_TOKEN` secret in the `npm` GitHub environment.
-   Do not paste it into source files, shell commands, issue comments, or chat.
+4. The first publication uses the configured `NPM_TOKEN`. It must allow direct
+   publication of all six packages and bypass two-factor authentication for CI.
+   GitHub does not expose the stored value, so its npm permissions are verified
+   when the publishing job authenticates. Keep the token short-lived.
 5. Commit the final version and lockfiles. Create and push the matching tag,
    initially `v0.1.0`. Automatic publication stays disabled until the repository
    variable `NPM_TRUSTED_PUBLISHING` is set to `true`.
 6. Manually run **Release**, selecting the `v0.1.0` tag, **publish = true**, and
-   **authentication = bootstrap-token**. Approve the environment deployment if
-   configured. Publishing from a branch is rejected.
+   **authentication = bootstrap-token**. Approve the `npm` environment deployment. Publishing from a branch is rejected.
 7. After success, verify all six npm package pages. Configure trusted publishing
    for each package using the settings below. Revoke the bootstrap token and
-   remove the `NPM_TOKEN` environment secret when it is no longer needed.
+   remove the `NPM_TOKEN` repository secret when it is no longer needed.
 
 The bootstrap token must permit direct publication. A stage-only token cannot
 run this workflow's `npm publish` command. npm currently supports bypass-2FA
@@ -70,6 +66,18 @@ The publisher skips an existing version only when its registry integrity matches
 that archive exactly. A new build can produce different ZIP or binary bytes;
 if a retry fails the integrity check, use the original artifact or a new version.
 The main package is published only after all platform packages are available.
+
+The publisher submits all missing native packages before waiting for npm to
+process them. It checks their availability together every 30 seconds for up to
+30 minutes, verifying each archive's checksum. It then publishes the main
+package and allows another 30 minutes for that package to become available.
+Temporary registry connection errors, rate limits, and server errors are retried
+during verification. Authentication failures and checksum conflicts stop the job.
+
+If npm holds a package for longer processing or review, the job reports the
+packages still pending. Check their status on npm before retrying the failed
+publish job. Keep the original artifacts. Rerunning an existing release uses
+the workflow and scripts at its original commit, not later fixes on `main`.
 
 ## Optional first publication from Windows
 
@@ -175,7 +183,7 @@ The `prepublishOnly` hook only validates inputs and does not publish packages.
 
 ## GitHub Pages
 
-In repository Settings, open Pages and select **GitHub Actions** as the source.
+GitHub Pages is configured to use **GitHub Actions** with HTTPS.
 The Docs workflow builds `docs/_site` and deploys it using the `github-pages`
 environment. It runs after documentation changes on `main` or by manual dispatch.
 See [GitHub's Pages configuration guide](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site).

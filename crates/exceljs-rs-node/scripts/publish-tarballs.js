@@ -27,13 +27,85 @@ function validate(dir) {
   return manifest.packages;
 }
 
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
 async function registryIntegrity(item) {
-  const response = await fetch(`https://registry.npmjs.org/${encodeURIComponent(item.name)}/${encodeURIComponent(item.version)}`,
-    {signal: AbortSignal.timeout(30000)});
+  let response;
+  try {
+    response = await fetch(`https://registry.npmjs.org/${encodeURIComponent(item.name)}/${encodeURIComponent(item.version)}`,
+      {signal: AbortSignal.timeout(30000), headers: {'Cache-Control': 'no-cache'}});
+  } catch (error) {
+    error.retryable = true;
+    throw error;
+  }
   if (response.status === 404) return null;
-  if (!response.ok) throw new Error(`Registry lookup failed for ${item.name}: ${response.status}`);
+  if (!response.ok) {
+    const error = new Error(`Registry lookup failed for ${item.name}: ${response.status}`);
+    error.retryable = response.status === 429 || response.status >= 500;
+    throw error;
+  }
   const metadata = await response.json();
   return metadata.dist?.integrity || 'missing-integrity';
+}
+
+async function waitForPublications(items, {
+  lookup = registryIntegrity, pause = sleep, now = Date.now,
+  timeoutMs = 30 * 60 * 1000, intervalMs = 30000, log = console.log,
+} = {}) {
+  const deadline = now() + timeoutMs;
+  let pending = [...items];
+  while (pending.length) {
+    const results = await Promise.all(pending.map(async item => {
+      try {
+        const integrity = await lookup(item);
+        if (integrity === null) return item;
+        assert.equal(integrity, item.integrity, `Registry integrity mismatch: ${item.name}@${item.version}`);
+        log(`Available with matching integrity: ${item.name}@${item.version}`);
+        return null;
+      } catch (error) {
+        if (!error.retryable) throw error;
+        log(`Registry temporarily unavailable for ${item.name}; retrying.`);
+        return item;
+      }
+    }));
+    pending = results.filter(Boolean);
+    if (!pending.length) return;
+    if (now() >= deadline) {
+      throw new Error(`npm availability timed out for: ${pending.map(item => item.name).join(', ')}. ` +
+        'Uploads were accepted, but processing or review may still be pending. Check npm package status, then resume with the same artifacts.');
+    }
+    log(`Waiting for npm processing: ${pending.map(item => item.name).join(', ')}`);
+    await pause(Math.min(intervalMs, deadline - now()));
+  }
+}
+
+async function publishPackages(packages, {lookup = registryIntegrity, upload,
+  wait = waitForPublications, pause = sleep, log = console.log} = {}) {
+  const pending = new Set();
+  // Check all versions before any upload. Never accept different bytes.
+  for (const item of packages) {
+    let integrity;
+    for (let attempt = 0; ; attempt++) {
+      try { integrity = await lookup(item); break; }
+      catch (error) {
+        if (!error.retryable || attempt === 3) throw error;
+        await pause(5000);
+      }
+    }
+    if (integrity === null) pending.add(item);
+    else {
+      assert.equal(integrity, item.integrity, `Published ${item.name}@${item.version} differs from this archive.`);
+      log(`Already published with matching integrity: ${item.name}@${item.version}`);
+    }
+  }
+  const platforms = packages.slice(0, -1);
+  const root = packages.at(-1);
+  // Submit every platform before waiting, so npm can process them together.
+  // Failed upload commands are not blindly retried: acceptance may be ambiguous.
+  for (const item of platforms) if (pending.has(item)) await upload(item);
+  await wait(platforms, {lookup, pause, log});
+  if (pending.has(root)) await upload(root);
+  await wait([root], {lookup, pause, log});
 }
 
 async function main() {
@@ -48,33 +120,18 @@ async function main() {
   const cli = process.env.npm_execpath;
   assert.ok(cli, 'Run through npm run release:publish-tarballs');
   const dryRun = args.includes('--dry-run');
-  const pending = [];
-  // Inspect every existing version before the first publication. A retry may
-  // skip an existing package only when the tarball is byte-for-byte identical.
-  for (const item of packages) {
-    const integrity = dryRun ? null : await registryIntegrity(item);
-    if (integrity === null) pending.push(item);
-    else {
-      assert.equal(integrity, item.integrity, `Published ${item.name}@${item.version} differs from this archive. Use a new version.`);
-      console.log(`Already published with matching integrity: ${item.name}@${item.version}`);
-    }
-  }
-  for (const item of pending) {
+  const upload = item => {
     const command = ['publish', path.join(dir, item.file), '--access', 'public', '--ignore-scripts', '--registry=https://registry.npmjs.org'];
     if (dryRun) command.push('--dry-run');
     else if (process.env.GITHUB_ACTIONS === 'true') command.push('--provenance');
     execFileSync(process.execPath, [cli, ...command], {stdio: 'inherit'});
-    if (!dryRun) {
-      let integrity = null;
-      for (let attempt = 0; attempt < 6; attempt++) {
-        integrity = await registryIntegrity(item);
-        if (integrity !== null) break;
-        await new Promise(resolve => setTimeout(resolve, 2000));
-      }
-      assert.equal(integrity, item.integrity, `Registry verification failed: ${item.name}@${item.version}`);
-    }
+  };
+  if (dryRun) {
+    for (const item of packages) upload(item);
+  } else {
+    await publishPackages(packages, {upload});
   }
 }
 
 if (require.main === module) main().catch(error => { console.error(error.message); process.exitCode = 1; });
-module.exports = {validate};
+module.exports = {validate, waitForPublications, publishPackages};
