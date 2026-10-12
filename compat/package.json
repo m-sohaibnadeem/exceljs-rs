@@ -8,7 +8,7 @@
     "test:exceljs": "EXCELRS_TARGET=exceljs node run.js"
   },
   "devDependencies": {
-    "chai": "4.5.0",
+    "chai": "6.3.0",
     "chai-datetime": "1.8.1",
     "chai-xml": "0.4.1",
     "dirty-chai": "2.0.1",
