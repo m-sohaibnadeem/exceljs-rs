@@ -1,8 +1,8 @@
-<!-- title: API reference | excel-rs
-     description: Workbook, worksheet, cell, XLSX, CSV, and streaming APIs for excel-rs. -->
+<!-- title: API reference | exceljs-rs
+     description: Workbook, worksheet, cell, XLSX, CSV, and streaming APIs for exceljs-rs. -->
 <main>
 <h1>API reference</h1>
-<p>The package exports <code>Workbook</code>, <code>stream.xlsx.WorkbookWriter</code>, <code>stream.xlsx.WorkbookReader</code>, and value enums. The <a href="https://github.com/m-sohaibnadeem/excel-rs/blob/main/crates/excel-rs-node/index.d.ts">TypeScript declarations</a> describe the available types. This page covers the main application APIs; the <a href="guide.html">guide</a> provides examples.</p>
+<p>The package exports <code>Workbook</code>, <code>stream.xlsx.WorkbookWriter</code>, <code>stream.xlsx.WorkbookReader</code>, and value enums. The <a href="https://github.com/m-sohaibnadeem/exceljs-rs/blob/main/crates/exceljs-rs-node/index.d.ts">TypeScript declarations</a> describe the available types. This page covers the main application APIs; the <a href="guide.html">guide</a> provides examples.</p>
 <p>Worksheet, row, and cell objects come from a workbook; they are not top-level constructors. Rows and columns use one-based indices. Worksheet IDs are not array positions and can have gaps after deletion.</p>
 <h2 id="workbook">Workbook and worksheets</h2>
 <div class="table-wrap"><table>
@@ -35,7 +35,7 @@
 cell.value = {text: 'Project', hyperlink: 'https://example.com'};
 cell.value = {richText: [{text: 'Total', font: {bold: true}}]};
 cell.value = {error: '#N/A'};</code></pre>
-<p>Formula results are cached values supplied by the caller or read from a file. excel-rs does not calculate formulas. <code>row.values</code> is a sparse, one-based array when read; index 0 is unused.</p>
+<p>Formula results are cached values supplied by the caller or read from a file. exceljs-rs does not calculate formulas. <code>row.values</code> is a sparse, one-based array when read; index 0 is unused.</p>
 <h2 id="styles">Styles and worksheet features</h2>
 <pre><code>sheet.getCell('B2').numFmt = '#,##0.00';
 sheet.getRow(1).font = {bold: true};

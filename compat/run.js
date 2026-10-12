@@ -1,7 +1,7 @@
 'use strict';
 
 // Runs ExcelJS 4.4.0's own spec suite (fetched into compat/upstream by
-// fetch-upstream.js) against excel-rs, or against real ExcelJS with
+// fetch-upstream.js) against exceljs-rs, or against real ExcelJS with
 // EXCELRS_TARGET=exceljs.
 //
 // Only specs that test ExcelJS through its public API (verquire('exceljs'))
@@ -43,7 +43,7 @@ for (let i = 0; i < args.length; i++) {
   else if (args[i] === '--baseline') writeBaseline = true;
   else files.push(args[i]);
 }
-const target = writeBaseline ? 'exceljs' : process.env.EXCELRS_TARGET || 'excel-rs';
+const target = writeBaseline ? 'exceljs' : process.env.EXCELRS_TARGET || 'exceljs-rs';
 const selected = files.length ? files : suiteSpecs();
 const baseline = fs.existsSync(BASELINE) ? JSON.parse(fs.readFileSync(BASELINE, 'utf8')) : {};
 

@@ -1,4 +1,4 @@
-# Releasing excel-rs
+# Releasing exceljs-rs
 
 GitHub Actions builds, tests, and publishes all five native targets and the main
 JavaScript package. The first publication can use a temporary npm bootstrap
@@ -9,20 +9,20 @@ crates are not published to crates.io.
 ## Before the first release
 
 Confirm ownership of the GitHub repository and npm package names. This project
-uses `m-sohaibnadeem/excel-rs` and these npm packages:
+uses `m-sohaibnadeem/exceljs-rs` and these npm packages:
 
-- `excel-rs`
-- `excel-rs-linux-x64-gnu`
-- `excel-rs-linux-arm64-gnu`
-- `excel-rs-darwin-x64`
-- `excel-rs-darwin-arm64`
-- `excel-rs-win32-x64-msvc`
+- `exceljs-rs`
+- `exceljs-rs-linux-x64-gnu`
+- `exceljs-rs-linux-arm64-gnu`
+- `exceljs-rs-darwin-x64`
+- `exceljs-rs-darwin-arm64`
+- `exceljs-rs-win32-x64-msvc`
 
 An npm lookup returning 404 does not reserve a name or guarantee permission to
 publish it. Use an npm account with two-factor authentication.
 
 Keep the version in `Cargo.toml`, `Cargo.lock`, and
-`crates/excel-rs-node/package.json` consistent. Update the npm lockfile after
+`crates/exceljs-rs-node/package.json` consistent. Update the npm lockfile after
 changing package metadata. Add release notes in `CHANGELOG.md` and run the
 checks in [CONTRIBUTING.md](CONTRIBUTING.md).
 
@@ -79,7 +79,7 @@ publish. A manual run with **publish = false** builds and tests all five targets
 produces the `npm-release` artifact. It does not publish anything.
 
 Download `npm-release` from that successful workflow run and extract the six
-`.tgz` files and `release-manifest.json` to `crates/excel-rs-node/release/`. Do not combine files from different
+`.tgz` files and `release-manifest.json` to `crates/exceljs-rs-node/release/`. Do not combine files from different
 runs or versions. Check the run's commit against your local checkout. The
 workflow checks version consistency, licenses, native artifacts, package
 contents, and a Linux installation of the packed package before uploading.
@@ -90,19 +90,19 @@ authentication:
 ```powershell
 npm login
 npm whoami
-$version = (Get-Content crates/excel-rs-node/package.json | ConvertFrom-Json).version
-$releaseDir = Join-Path (Get-Location) 'crates/excel-rs-node/release'
+$version = (Get-Content crates/exceljs-rs-node/package.json | ConvertFrom-Json).version
+$releaseDir = Join-Path (Get-Location) 'crates/exceljs-rs-node/release'
 $names = @('linux-x64-gnu', 'linux-arm64-gnu', 'darwin-x64', 'darwin-arm64', 'win32-x64-msvc')
 foreach ($name in $names) {
-  npm publish (Join-Path $releaseDir "excel-rs-$name-$version.tgz") --access public --ignore-scripts --dry-run
+  npm publish (Join-Path $releaseDir "exceljs-rs-$name-$version.tgz") --access public --ignore-scripts --dry-run
   if ($LASTEXITCODE -ne 0) { throw "Preview failed: $name" }
 }
-npm publish (Join-Path $releaseDir "excel-rs-$version.tgz") --access public --ignore-scripts --dry-run
+npm publish (Join-Path $releaseDir "exceljs-rs-$version.tgz") --access public --ignore-scripts --dry-run
 ```
 
 Inspect the previews, including package names, versions, licenses, and files.
 When ready to publish, repeat those commands without `--dry-run`, publishing
-all five platform packages before `excel-rs`. This is an irreversible registry
+all five platform packages before `exceljs-rs`. This is an irreversible registry
 operation. Local publishing may request two-factor authentication. Do not add
 `--provenance` to this local release: the machine is not a supported CI identity.
 
@@ -115,7 +115,7 @@ release in GitHub without pushing a release tag that would publish it a second t
 Configure a trusted publisher in npm for **each of the six packages**, using:
 
 - GitHub owner: `m-sohaibnadeem`
-- Repository: `excel-rs`
+- Repository: `exceljs-rs`
 - Workflow filename: `release.yml`
 - Environment: `npm`
 - Allowed action: direct publication with `npm publish`
@@ -149,8 +149,8 @@ does not establish that the full release is ready.
 
 For release work outside the workflow, obtain all five platform binaries and
 the generated `native.js` and `native.d.ts` from the same tested commit.
-Place downloaded workflow artifacts under `crates/excel-rs-node/artifacts/`,
-preserving their artifact folders. From `crates/excel-rs-node`:
+Place downloaded workflow artifacts under `crates/exceljs-rs-node/artifacts/`,
+preserving their artifact folders. From `crates/exceljs-rs-node`:
 
 ```sh
 npm ci
@@ -180,5 +180,5 @@ The Docs workflow builds `docs/_site` and deploys it using the `github-pages`
 environment. It runs after documentation changes on `main` or by manual dispatch.
 See [GitHub's Pages configuration guide](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site).
 
-Check the deployed site at `https://m-sohaibnadeem.github.io/excel-rs/`, including
+Check the deployed site at `https://m-sohaibnadeem.github.io/exceljs-rs/`, including
 navigation, API examples, and mobile layout. No custom domain is configured.

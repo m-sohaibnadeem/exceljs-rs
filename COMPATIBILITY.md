@@ -1,24 +1,24 @@
 # Compatibility with ExcelJS
 
-excel-rs targets ExcelJS 4.4.0 public API compatibility. The compatibility
+exceljs-rs targets ExcelJS 4.4.0 public API compatibility. The compatibility
 suite runs selected upstream public API specs, with exclusions recorded in
 `compat/suite.js`. Passing those specs does not guarantee that every workbook
 or API usage behaves identically.
 
 This page records known differences. Report unexpected behavior with a minimal,
-non-confidential reproduction through [GitHub issues](https://github.com/m-sohaibnadeem/excel-rs/issues).
+non-confidential reproduction through [GitHub issues](https://github.com/m-sohaibnadeem/exceljs-rs/issues).
 
 ## Bugs fixed from ExcelJS
 
-These ExcelJS 4.4.0 behaviours are bugs, and excel-rs fixes them instead of
+These ExcelJS 4.4.0 behaviours are bugs, and exceljs-rs fixes them instead of
 copying them. Each one is shown by a test file (named in parentheses) and
-tested in `crates/excel-rs-node/test/fixed-bugs.test.js`. The selected upstream specs run in CI.
+tested in `crates/exceljs-rs-node/test/fixed-bugs.test.js`. The selected upstream specs run in CI.
 
 - **B1. `_xHHHH_` escapes round-trip.** OOXML writes characters as `_xHHHH_`
   in text. ExcelJS decodes them only in shared strings, only with upper-case
   hex, and never escapes literal text of that shape when writing, so
   `"_x0041_ literal"` is written as is and read back as `"A literal"`
-  (`strings.xlsx` A10). excel-rs decodes upper- and lower-case hex in shared
+  (`strings.xlsx` A10). exceljs-rs decodes upper- and lower-case hex in shared
   strings, inline strings and `t="str"` values (both readers), and writes the
   `_` of escape-shaped literal text as `_x005F_` (shared strings, rich text,
   inline and `t="str"` cells, formula string results). Control characters
@@ -27,7 +27,7 @@ tested in `crates/excel-rs-node/test/fixed-bugs.test.js`. The selected upstream 
 - **B2. Text is XML-decoded once.** ExcelJS runs `utils.xmlDecode` on
   `t="str"` text and on sheet names after the XML parser has already decoded
   them, so the literal text `&amp; &lt;` became `& <` (both readers).
-  excel-rs decodes once (`strings-inline.xlsx` A9, `edge-cells.xlsx` D4,
+  exceljs-rs decodes once (`strings-inline.xlsx` A9, `edge-cells.xlsx` D4,
   `edge-sheet-name-entity.xlsx` sheet `a &lt; b &amp; c`).
 - **B3. Empty strings survive and `useSharedStrings: false` works.** A string
   cell with an empty `<v></v>` (what the streaming writer writes for `''` with
@@ -39,7 +39,7 @@ tested in `crates/excel-rs-node/test/fixed-bugs.test.js`. The selected upstream 
   at the close tag of any element it does not know, such as a phonetic
   `<rPh>` run, which lost the rest of the row and every later row
   (`edge-inline-phonetic.xlsx`: ExcelJS reads B1 as `"basePHONETIC"` with no
-  type, and loses C1 and row 2). excel-rs skips such elements whole. The
+  type, and loses C1 and row 2). exceljs-rs skips such elements whole. The
   streaming reader also joins the text of every run of a rich inline string
   (ExcelJS kept the last `<t>` only).
 - **B5. `<si/>` is the empty string.** ExcelJS read it as the object `{}`,
@@ -56,16 +56,16 @@ tested in `crates/excel-rs-node/test/fixed-bugs.test.js`. The selected upstream 
   `<t><![CDATA[cdata text]]></t>` read as `""` (`edge-cells.xlsx` E1).
 - **B9. A cell's address matches its row.** `<row r="8"><c r="A99">` puts
   the cell in row 8; ExcelJS kept the address `"A99"`, so
-  `ws.getCell('A8')` and the cell disagreed. excel-rs addresses it `A8`
+  `ws.getCell('A8')` and the cell disagreed. exceljs-rs addresses it `A8`
   (`edge-cells.xlsx`).
 - **B10. `t="b"` booleans.** ExcelJS's `parseInt(text) !== 0` made any
-  non-numeric text true, `false` included. excel-rs reads a non-zero integer
+  non-numeric text true, `false` included. exceljs-rs reads a non-zero integer
   or the word `true` (any case) as true and anything else as false (both
   readers; `edge-cells.xlsx` C2, E2, F2).
 - **B11. The streaming writer's shared strings tell rich texts apart.**
   `utils/shared-strings.js` used the value as an object key, so every rich
   text was `"[object Object]"` and, with `useSharedStrings: true`, every
-  rich-text cell showed the first rich text written. excel-rs keys rich text
+  rich-text cell showed the first rich text written. exceljs-rs keys rich text
   by its XML, as the xlsx writer does.
 - **B12. The streaming reader's shared strings** (`_parseSharedStrings`):
   `<color rgb>` now gives `argb` (ExcelJS read the absent `argb`
@@ -80,9 +80,9 @@ tested in `crates/excel-rs-node/test/fixed-bugs.test.js`. The selected upstream 
 - **B14. The streaming reader reads a `<c>` without `r`** as the next
   column, like the xlsx reader. ExcelJS threw (`edge-cells.xlsx` row 5).
 
-## ExcelJS limitations excel-rs keeps
+## ExcelJS limitations exceljs-rs keeps
 
-These aren't bugs, but they limit which files load. excel-rs behaves the same
+These aren't bugs, but they limit which files load. exceljs-rs behaves the same
 way.
 
 - Part names are fixed (`xl/workbook.xml`, `xl/_rels/workbook.xml.rels`,
@@ -126,7 +126,7 @@ way.
   pieces of about 1 MB, and `stream.xlsx.WorkbookWriter` as rows are
   committed.
 - **D4. CSV parser option types.** fast-csv compares option values with
-  tokens with `===`; excel-rs passes `delimiter` as a string
+  tokens with `===`; exceljs-rs passes `delimiter` as a string
   (`String(delimiter)`) and any non-string `quote`, `escape`, `comment` as
   "never matches". A one-character non-string delimiter behaves differently.
 - **D5. ZIP output.** Entries are deflated by zlib-rs rather than JSZip or
@@ -156,4 +156,4 @@ way.
   finalization before resolving.
 
 - Native Node.js ES modules can use named imports such as
-  `import {Workbook} from "excel-rs"`. CommonJS imports are also supported.
+  `import {Workbook} from "exceljs-rs"`. CommonJS imports are also supported.

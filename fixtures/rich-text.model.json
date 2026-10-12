@@ -128,13 +128,13 @@
  "media": [],
  "company": "",
  "manager": "",
- "creator": "excel-rs reference",
+ "creator": "exceljs-rs reference",
  "title": "",
  "subject": "",
  "description": "",
  "keywords": "",
  "category": "",
- "lastModifiedBy": "excel-rs reference",
+ "lastModifiedBy": "exceljs-rs reference",
  "created": {
   "$date": 1577836800000
  },

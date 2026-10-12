@@ -1,10 +1,10 @@
-<!-- title: excel-rs | Spreadsheets for Node.js
+<!-- title: exceljs-rs | Spreadsheets for Node.js
      description: Read, write, and stream XLSX and CSV files with a Rust engine and an ExcelJS-compatible Node.js API. -->
 <main>
 <section class="hero">
 <h1>Spreadsheets for Node.js.<br>Powered by Rust.</h1>
 <p class="lead">Read, write, and stream XLSX and CSV files with an ExcelJS-compatible API. Use familiar workbook objects, with parsing and compression handled by Rust.</p>
-<div class="cta"><span class="install">npm install excel-rs</span><a class="btn" href="guide.html">Get started</a><a class="btn secondary" href="api.html">API reference</a></div>
+<div class="cta"><span class="install">npm install exceljs-rs</span><a class="btn" href="guide.html">Get started</a><a class="btn secondary" href="api.html">API reference</a></div>
 </section>
 <div class="features">
 <div class="feature"><h3>Workbook editing</h3><p>Work with worksheets, rows, cells, styles, merges, formulas, tables, and images.</p></div>
@@ -13,7 +13,7 @@
 <div class="feature"><h3>TypeScript included</h3><p>Use the shipped declarations for workbook objects, cell values, styles, and read and write options.</p></div>
 </div>
 <h2>Create a workbook</h2>
-<pre><code>const {Workbook} = require('excel-rs');
+<pre><code>const {Workbook} = require('exceljs-rs');
 
 async function main() {
   const workbook = new Workbook();
@@ -35,5 +35,5 @@ main().catch(error =&gt; {
 <p>See the <a href="benchmarks.html">measurements and reproduction steps</a> for XLSX and CSV workloads. Performance depends on your input and environment.</p>
 <h2>Handling uploads</h2>
 <p>Untrusted workbooks require process memory and time limits. See the <a href="security.html">security guidance</a> before accepting uploads.</p>
-<p>excel-rs is an independent project and is not affiliated with ExcelJS. Distributed under MIT, with included third-party notices.</p>
+<p>exceljs-rs is an independent project and is not affiliated with ExcelJS. Distributed under MIT, with included third-party notices.</p>
 </main>

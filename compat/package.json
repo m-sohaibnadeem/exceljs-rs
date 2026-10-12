@@ -1,7 +1,7 @@
 {
-  "name": "excel-rs-compat",
+  "name": "exceljs-rs-compat",
   "private": true,
-  "description": "Runs ExcelJS 4.4.0's own spec suite against excel-rs.",
+  "description": "Runs ExcelJS 4.4.0's own spec suite against exceljs-rs.",
   "scripts": {
     "fetch": "node fetch-upstream.js",
     "test": "node run.js",

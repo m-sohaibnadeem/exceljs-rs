@@ -15,7 +15,7 @@ async function main() {
   if (createHash('sha256').update(bytes).digest('hex') !== checksum) {
     throw new Error('Upstream archive checksum mismatch');
   }
-  const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'excel-rs-compat-'));
+  const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'exceljs-rs-compat-'));
   try {
     const archive = path.join(temp, 'upstream.tar.gz');
     fs.writeFileSync(archive, bytes);

@@ -1,10 +1,10 @@
-excel-rs contains ports of the following MIT-licensed packages, used by
+exceljs-rs contains ports of the following MIT-licensed packages, used by
 ExcelJS's CSV support. Their licence notices follow. (ExcelJS's own notice
 is in LICENSE-EXCELJS.)
 
 ================================================================
 fast-csv 4.3.6 (@fast-csv/parse, @fast-csv/format)
-  ported in crates/excel-rs/src/csv.rs and crates/excel-rs-node/lib/csv/fast-csv.js
+  ported in crates/exceljs-rs/src/csv.rs and crates/exceljs-rs-node/lib/csv/fast-csv.js
 ================================================================
 
 The MIT License
@@ -30,7 +30,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ================================================================
 dayjs 1.11
-  ported in crates/excel-rs-node/lib/utils/dayjs-lite.js
+  ported in crates/exceljs-rs-node/lib/utils/dayjs-lite.js
 ================================================================
 
 MIT License

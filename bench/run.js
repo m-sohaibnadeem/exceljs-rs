@@ -1,7 +1,7 @@
 'use strict';
 
 // Times the same workloads with ExcelJS 4.4.0 (bench/node_modules: npm ci) and
-// with excel-rs (crates/excel-rs-node, release build: `npm run build`).
+// with exceljs-rs (crates/exceljs-rs-node, release build: `npm run build`).
 //
 //   node bench/run.js [rows] [--only name]
 //
@@ -18,13 +18,13 @@ const os = require('os');
 const ROOT = path.join(__dirname, '..');
 const LIBS = {
   exceljs: path.join(__dirname, 'node_modules', 'exceljs'),
-  'excel-rs': path.join(ROOT, 'crates', 'excel-rs-node'),
+  'exceljs-rs': path.join(ROOT, 'crates', 'exceljs-rs-node'),
 };
 
 const args = process.argv.slice(2);
 const ROWS = Number(args.find(a => /^\d+$/.test(a)) || 100000);
 const only = args.includes('--only') ? args[args.indexOf('--only') + 1] : null;
-const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'excel-rs-bench-'));
+const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'exceljs-rs-bench-'));
 
 // Workload code, run in the child with `ExcelJS`, `ROWS` and `TMP` in scope.
 // Inputs are prepared outside the timed part (with ExcelJS, so both
@@ -127,15 +127,15 @@ function child(lib, code) {
   return JSON.parse(execFileSync(process.execPath, ['--max-old-space-size=8192', '-e', script], {encoding: 'utf8', maxBuffer: 1 << 26}));
 }
 
-const profile = require(path.join(LIBS['excel-rs'], 'native')).buildProfile();
+const profile = require(path.join(LIBS['exceljs-rs'], 'native')).buildProfile();
 if (profile !== 'release') {
-  console.error(`the excel-rs addon is a ${profile} build: run \`npm run build\` in crates/excel-rs-node`);
+  console.error(`the exceljs-rs addon is a ${profile} build: run \`npm run build\` in crates/exceljs-rs-node`);
   process.exit(1);
 }
 
 const prepared = new Set();
 console.log(`rows: ${ROWS}  node ${process.version}  ${os.cpus()[0].model}`);
-console.log('workload        exceljs ms  excel-rs ms  speedup |  library call: exceljs ms  excel-rs ms  speedup |  exceljs peak  excel-rs peak');
+console.log('workload        exceljs ms  exceljs-rs ms  speedup |  library call: exceljs ms  exceljs-rs ms  speedup |  exceljs peak  exceljs-rs peak');
 for (const [name, w] of Object.entries(WORKLOADS)) {
   if (only && name !== only) continue;
   if (w.prepare && !prepared.has(w.prepare)) {
@@ -152,7 +152,7 @@ for (const [name, w] of Object.entries(WORKLOADS)) {
     return b;
   };
   const e = best('exceljs');
-  const p = best('excel-rs');
+  const p = best('exceljs-rs');
   const mb = x => `${(x / 1048576).toFixed(0)} MB`;
   const callCols = e.io === e.ms ? ' '.repeat(42) : `${e.io.toFixed(0).padStart(26)} ${p.io.toFixed(0).padStart(9)} ${(e.io / p.io).toFixed(2).padStart(7)}x`;
   console.log(

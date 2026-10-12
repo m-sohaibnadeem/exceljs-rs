@@ -1,7 +1,7 @@
 {
-  "name": "excel-rs-bench",
+  "name": "exceljs-rs-bench",
   "private": true,
-  "description": "Times excel-rs against ExcelJS 4.4.0 (node run.js).",
+  "description": "Times exceljs-rs against ExcelJS 4.4.0 (node run.js).",
   "devDependencies": {
     "exceljs": "4.4.0"
   },

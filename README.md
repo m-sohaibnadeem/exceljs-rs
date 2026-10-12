@@ -1,21 +1,21 @@
-# excel-rs
+# exceljs-rs
 
 Read, write, and stream XLSX and CSV files in Node.js with a Rust engine and
 an ExcelJS-compatible JavaScript API.
 
-excel-rs targets the public API of ExcelJS 4.4.0. It includes TypeScript
+exceljs-rs targets the public API of ExcelJS 4.4.0. It includes TypeScript
 declarations, workbook editing, cell styles, formulas, tables, and streaming.
 Review the [known differences](COMPATIBILITY.md) and test your workbooks when
 migrating. This project is not affiliated with ExcelJS.
 
-[Documentation](https://m-sohaibnadeem.github.io/excel-rs/) ?
-[API guide](https://m-sohaibnadeem.github.io/excel-rs/guide.html) ?
+[Documentation](https://m-sohaibnadeem.github.io/exceljs-rs/) ?
+[API guide](https://m-sohaibnadeem.github.io/exceljs-rs/guide.html) ?
 [Contributing](CONTRIBUTING.md)
 
 ## Install
 
 ```sh
-npm install excel-rs
+npm install exceljs-rs
 ```
 
 Use Node.js 22 or later. Release targets are Linux x64 and arm64 (glibc),
@@ -30,7 +30,7 @@ For an unpublished checkout, follow the [source build instructions](CONTRIBUTING
 Save this as `example.cjs` and run `node example.cjs`:
 
 ```js
-const {Workbook} = require('excel-rs');
+const {Workbook} = require('exceljs-rs');
 
 async function main() {
   const workbook = new Workbook();
@@ -58,7 +58,7 @@ main().catch(error => {
 ES modules and TypeScript:
 
 ```ts
-import {Workbook} from 'excel-rs';
+import {Workbook} from 'exceljs-rs';
 const workbook = new Workbook();
 workbook.addWorksheet('Data').addRow(['Hello', 42]);
 ```
@@ -68,24 +68,24 @@ buffer and stream types.
 
 ## ExcelJS compatibility
 
-To try an existing application with excel-rs, change the import:
+To try an existing application with exceljs-rs, change the import:
 
 ```diff
 - const ExcelJS = require('exceljs');
-+ const ExcelJS = require('excel-rs');
++ const ExcelJS = require('exceljs-rs');
 ```
 
 The compatibility suite exercises selected ExcelJS 4.4.0 public API specs.
 It does not establish compatibility with every feature or workbook.
 [COMPATIBILITY.md](COMPATIBILITY.md) describes known differences and limitations.
-Formulas store expressions and cached results; excel-rs does not calculate them.
+Formulas store expressions and cached results; exceljs-rs does not calculate them.
 
 ## Large workbooks and CSV
 
 Inside an async function:
 
 ```js
-const Excel = require('excel-rs');
+const Excel = require('exceljs-rs');
 const writer = new Excel.stream.xlsx.WorkbookWriter({filename: 'data.xlsx'});
 const sheet = writer.addWorksheet('Data');
 for (let i = 0; i < 100_000; i++) {
@@ -105,7 +105,7 @@ shared strings, styles, and workbook structure.
 
 ## Performance
 
-The [benchmark page](https://m-sohaibnadeem.github.io/excel-rs/benchmarks.html)
+The [benchmark page](https://m-sohaibnadeem.github.io/exceljs-rs/benchmarks.html)
 records measurements and methodology. Results depend on workload, hardware,
 and build. Reproduce them with `node bench/run.js` after a release build
 and `npm ci` in `bench/`.

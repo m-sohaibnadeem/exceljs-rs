@@ -9,7 +9,7 @@
   --accent: #2a78d6;
   --accent-ink: #1d5fae;
   --code-bg: #f0efeb;
-  --series-1: #2a78d6; /* excel-rs */
+  --series-1: #2a78d6; /* exceljs-rs */
   --series-2: #eb6834; /* ExcelJS */
   --track: #ebeae6;
   --radius: 8px;
@@ -129,7 +129,7 @@ th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--bor
 th { color: var(--text-2); font-weight: 600; }
 td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
-/* Bar chart: one row per workload, two bars (ExcelJS, excel-rs) on a shared scale. */
+/* Bar chart: one row per workload, two bars (ExcelJS, exceljs-rs) on a shared scale. */
 .chart { margin: 20px 0 8px; }
 .chart-title { font-weight: 600; margin: 0 0 4px; }
 .chart-sub { color: var(--text-2); font-size: 14px; margin: 0 0 12px; }

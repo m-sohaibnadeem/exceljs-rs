@@ -51,7 +51,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "877a4ace8713b0bcf2a4e7eec82529c029f1d0619886d18145fea96c3ffe5c0f"
 
 [[package]]
-name = "excel-rs"
+name = "exceljs-rs"
 version = "0.1.0"
 dependencies = [
  "quick-xml",
@@ -61,10 +61,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "excel-rs-node"
+name = "exceljs-rs-node"
 version = "0.1.0"
 dependencies = [
- "excel-rs",
+ "exceljs-rs",
  "napi",
  "napi-build",
  "napi-derive",

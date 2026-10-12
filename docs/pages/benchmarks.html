@@ -1,9 +1,9 @@
-<!-- title: Benchmarks | excel-rs
-     description: Speed and peak memory of excel-rs against ExcelJS 4.4.0 on reading, writing and streaming .xlsx and CSV files. -->
+<!-- title: Benchmarks | exceljs-rs
+     description: Speed and peak memory of exceljs-rs against ExcelJS 4.4.0 on reading, writing and streaming .xlsx and CSV files. -->
 <main class="wide">
 <h1>Benchmarks</h1>
 <p class="note">Historical measurements supplied with the project. Raw result logs and a source revision were not recorded, so these numbers are illustrative and are not verified release guarantees. Run the commands below to measure your build.</p>
-<p>The same workloads run with ExcelJS 4.4.0 and with excel-rs: 100,000 rows × 6 columns (numbers, strings, dates, booleans and formulas). Each workload runs in a fresh process per library, and the best of 3 runs is reported. The read workloads read every cell's value. Peak memory is the process's high-water mark (RSS).</p>
+<p>The same workloads run with ExcelJS 4.4.0 and with exceljs-rs: 100,000 rows × 6 columns (numbers, strings, dates, booleans and formulas). Each workload runs in a fresh process per library, and the best of 3 runs is reported. The read workloads read every cell's value. Peak memory is the process's high-water mark (RSS).</p>
 <p class="note">Setup: Node.js 22, Linux, 4-core 2.1 GHz Xeon. Numbers vary with hardware; <a href="#reproduce">reproduce them</a> on yours.</p>
 
 <div class="chart" data-chart='{
@@ -36,7 +36,7 @@
 
 <h2 id="table">Results</h2>
 <div class="table-wrap"><table>
-  <thead><tr><th>Workload</th><th class="num">ExcelJS</th><th class="num">excel-rs</th><th class="num">Speed-up</th><th class="num">Peak memory, ExcelJS</th><th class="num">Peak memory, excel-rs</th></tr></thead>
+  <thead><tr><th>Workload</th><th class="num">ExcelJS</th><th class="num">exceljs-rs</th><th class="num">Speed-up</th><th class="num">Peak memory, ExcelJS</th><th class="num">Peak memory, exceljs-rs</th></tr></thead>
   <tbody>
     <tr><td><code>xlsx.readFile</code> (load and read every value)</td><td class="num">2.34 s</td><td class="num">0.56 s</td><td class="num"><strong>4.2×</strong></td><td class="num">418 MB</td><td class="num">272 MB</td></tr>
     <tr><td><code>xlsx.writeBuffer</code> (build the sheet and write it)</td><td class="num">5.50 s</td><td class="num">1.58 s</td><td class="num"><strong>3.5×</strong></td><td class="num">863 MB</td><td class="num">370 MB</td></tr>
@@ -50,7 +50,7 @@
 <h3>The library call alone</h3>
 <p>Without building the sheet in user code first:</p>
 <div class="table-wrap"><table>
-  <thead><tr><th>Call</th><th class="num">ExcelJS</th><th class="num">excel-rs</th><th class="num">Speed-up</th></tr></thead>
+  <thead><tr><th>Call</th><th class="num">ExcelJS</th><th class="num">exceljs-rs</th><th class="num">Speed-up</th></tr></thead>
   <tbody>
     <tr><td><code>readFile</code></td><td class="num">2.28 s</td><td class="num">0.51 s</td><td class="num">4.5×</td></tr>
     <tr><td><code>writeBuffer</code></td><td class="num">5.08 s</td><td class="num">1.20 s</td><td class="num">4.2×</td></tr>
@@ -60,7 +60,7 @@
 
 <h3>Larger files</h3>
 <div class="table-wrap"><table>
-  <thead><tr><th>Workload</th><th class="num">Peak memory, ExcelJS</th><th class="num">Peak memory, excel-rs</th></tr></thead>
+  <thead><tr><th>Workload</th><th class="num">Peak memory, ExcelJS</th><th class="num">Peak memory, exceljs-rs</th></tr></thead>
   <tbody>
     <tr><td><code>xlsx.readFile</code>, 500,000 rows</td><td class="num">1,623 MB</td><td class="num">994 MB</td></tr>
     <tr><td>Streaming <code>WorkbookReader</code>, 500,000 rows</td><td class="num">144 MB</td><td class="num">134 MB</td></tr>
@@ -71,8 +71,8 @@
 <p>Whole-workbook <code>readFile</code> and <code>writeBuffer</code> keep the whole sheet as JavaScript objects, with a <code>Row</code>, a <code>Cell</code> and a value object per cell, so that the API behaves as ExcelJS's does. Building those objects costs about the same in both libraries, so it bounds the speed-up. Everything below it (ZIP, XML, styles, shared strings) runs in Rust. Writers compress on a thread of their own while they render, and rows cross into JavaScript in batches, in a binary format. For the largest files, use the <a href="guide.html#streaming">streaming reader and writer</a>.</p>
 
 <h2 id="reproduce">Reproduce</h2>
-<pre><code>git clone https://github.com/m-sohaibnadeem/excel-rs
-cd excel-rs/crates/excel-rs-node
+<pre><code>git clone https://github.com/m-sohaibnadeem/exceljs-rs
+cd exceljs-rs/crates/exceljs-rs-node
 npm ci &amp;&amp; npm run build        # release build of the addon
 cd ../../bench &amp;&amp; npm ci         # ExcelJS 4.4.0, to compare against
 node run.js 100000</code></pre>

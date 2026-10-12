@@ -43,13 +43,13 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
       - name: Build the addon
-        working-directory: crates/excel-rs-node
+        working-directory: crates/exceljs-rs-node
         run: npm ci && npm run build:debug
       - name: Test the Node API
-        working-directory: crates/excel-rs-node
+        working-directory: crates/exceljs-rs-node
         run: npm test && npm run test:types
 
-  # ExcelJS 4.4.0's own spec suite, against excel-rs.
+  # ExcelJS 4.4.0's own spec suite, against exceljs-rs.
   exceljs-specs:
     timeout-minutes: 30
     runs-on: ubuntu-latest
@@ -63,7 +63,7 @@ jobs:
         with:
           node-version: 22
       - name: Build the addon
-        working-directory: crates/excel-rs-node
+        working-directory: crates/exceljs-rs-node
         run: npm ci && npm run build:debug
       - run: npm ci && node fetch-upstream.js
         working-directory: compat

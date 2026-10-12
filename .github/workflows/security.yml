@@ -22,7 +22,7 @@ jobs:
         with:
           node-version: 24
       - uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249 # stable
-      - run: npm audit --prefix crates/excel-rs-node
+      - run: npm audit --prefix crates/exceljs-rs-node
       - run: npm audit --prefix compat
       - run: npm audit --prefix bench
       - run: cargo install cargo-audit --locked --version 0.22.2

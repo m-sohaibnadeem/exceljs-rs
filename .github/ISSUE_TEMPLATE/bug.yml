@@ -1,5 +1,5 @@
 name: Bug report
-description: Report a reproducible problem with excel-rs.
+description: Report a reproducible problem with exceljs-rs.
 body:
   - type: markdown
     attributes:
@@ -7,7 +7,7 @@ body:
   - type: input
     id: version
     attributes:
-      label: excel-rs version
+      label: exceljs-rs version
     validations:
       required: true
   - type: input

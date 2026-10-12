@@ -1,11 +1,11 @@
-<!-- title: Guide | excel-rs
-     description: Install excel-rs, read and write workbooks, stream large files, use CSV and TypeScript, and move from ExcelJS. -->
+<!-- title: Guide | exceljs-rs
+     description: Install exceljs-rs, read and write workbooks, stream large files, use CSV and TypeScript, and move from ExcelJS. -->
 <main>
 <h1>Guide</h1>
 <p>This guide covers the main Node.js APIs. See the <a href="api.html">API reference</a> for signatures and options and <a href="compatibility.html">compatibility</a> for known differences from ExcelJS 4.4.0.</p><p>JavaScript snippets below use CommonJS. Put snippets containing <code>await</code> inside an async function, as shown in the complete <a href="index.html">getting-started example</a>. Handle rejected promises in your application.</p>
 
 <h2 id="install">Install</h2>
-<pre><code>npm install excel-rs</code></pre>
+<pre><code>npm install exceljs-rs</code></pre>
 <p>Requirements: Node.js 22 or later. npm installs a prebuilt binary for your platform:</p>
 <div class="table-wrap"><table>
   <thead><tr><th>OS</th><th>Architectures</th></tr></thead>
@@ -15,23 +15,23 @@
     <tr><td>Windows</td><td>x64</td></tr>
   </tbody>
 </table></div>
-<p>Other platforms, including Alpine Linux (musl), have no prebuilt package and are not tested by the release workflow. To attempt a source build, see <a href="https://github.com/m-sohaibnadeem/excel-rs/blob/main/CONTRIBUTING.md#build">CONTRIBUTING.md</a>.</p>
+<p>Other platforms, including Alpine Linux (musl), have no prebuilt package and are not tested by the release workflow. To attempt a source build, see <a href="https://github.com/m-sohaibnadeem/exceljs-rs/blob/main/CONTRIBUTING.md#build">CONTRIBUTING.md</a>.</p>
 
 <h2 id="from-exceljs">Moving from ExcelJS</h2>
 <p>Start by changing the package import, then run your tests and compare representative workbooks:</p>
 <pre><code>// before
 const ExcelJS = require('exceljs');
 // after
-const ExcelJS = require('excel-rs');</code></pre>
+const ExcelJS = require('exceljs-rs');</code></pre>
 <ul>
   <li>Workbooks, worksheets, rows, cells, styles, formulas, merges, tables, images, data validation, conditional formatting, defined names and worksheet protection target the ExcelJS 4.4.0 API.</li>
   <li>Compatibility tests compare fixture values and styles. They cannot cover every workbook or application.</li>
   <li>The differences are fixed ExcelJS bugs and a few engine details, all listed on the <a href="compatibility.html">compatibility</a> page. Check it if your code relies on an ExcelJS quirk.</li>
-  <li>The browser bundle (<code>exceljs/dist/exceljs.min.js</code>) has no equivalent: excel-rs is a native Node.js addon.</li>
+  <li>The browser bundle (<code>exceljs/dist/exceljs.min.js</code>) has no equivalent: exceljs-rs is a native Node.js addon.</li>
 </ul>
 
 <h2 id="read-write">Read and write workbooks</h2>
-<pre><code>const ExcelJS = require('excel-rs');
+<pre><code>const ExcelJS = require('exceljs-rs');
 
 // From a file, a Buffer or a stream
 const workbook = new ExcelJS.Workbook();
@@ -96,11 +96,11 @@ const sheet = await workbook.csv.readFile('data.csv', {
 await workbook.csv.writeFile('out.csv', {formatterOptions: {delimiter: ','}});</code></pre>
 <p>Options are those of ExcelJS (<code>parserOptions</code>, <code>formatterOptions</code>, <code>dateFormats</code>, <code>map</code>, <code>includeEmptyRows</code>). Input is parsed chunk by chunk as it arrives.</p>
 
-<p>Formulas are stored with optional cached results; excel-rs does not calculate them. Worksheet protection restricts editing and does not encrypt files.</p>
+<p>Formulas are stored with optional cached results; exceljs-rs does not calculate them. Worksheet protection restricts editing and does not encrypt files.</p>
 <h2 id="typescript">TypeScript</h2>
 <p>Type definitions are included, with the same names as ExcelJS's. They check under <code>strict</code> with <code>nodenext</code> or <code>bundler</code> module resolution.</p>
 <p>Install <code>@types/node</code> in TypeScript projects.</p>
-<pre><code>import * as ExcelJS from 'excel-rs';
+<pre><code>import * as ExcelJS from 'exceljs-rs';
 
 const workbook: ExcelJS.Workbook = new ExcelJS.Workbook();
 const sheet: ExcelJS.Worksheet = workbook.addWorksheet('Data');
@@ -111,7 +111,7 @@ const cell: ExcelJS.Cell = sheet.getCell('A1');</code></pre>
 
 <h2 id="help">Getting help</h2>
 <ul>
-  <li>Report a bug or a file that behaves differently from ExcelJS: <a href="https://github.com/m-sohaibnadeem/excel-rs/issues">GitHub issues</a>. Attach a minimal reproduction with confidential data removed. Report security problems privately.</li>
-  <li>Contribute: <a href="https://github.com/m-sohaibnadeem/excel-rs/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a>.</li>
+  <li>Report a bug or a file that behaves differently from ExcelJS: <a href="https://github.com/m-sohaibnadeem/exceljs-rs/issues">GitHub issues</a>. Attach a minimal reproduction with confidential data removed. Report security problems privately.</li>
+  <li>Contribute: <a href="https://github.com/m-sohaibnadeem/exceljs-rs/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a>.</li>
 </ul>
 </main>

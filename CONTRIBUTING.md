@@ -13,14 +13,14 @@ a C compiler and linker.
 From the repository root:
 
 ```sh
-npm ci --prefix crates/excel-rs-node
-npm run build:debug --prefix crates/excel-rs-node
-npm test --prefix crates/excel-rs-node
+npm ci --prefix crates/exceljs-rs-node
+npm run build:debug --prefix crates/exceljs-rs-node
+npm test --prefix crates/exceljs-rs-node
 ```
 
-Use `npm run build --prefix crates/excel-rs-node` for an optimized addon.
+Use `npm run build --prefix crates/exceljs-rs-node` for an optimized addon.
 Rebuild after changing Rust code. Generated loaders and native binaries are
-ignored by Git. Source builds use `require('./crates/excel-rs-node')` from the
+ignored by Git. Source builds use `require('./crates/exceljs-rs-node')` from the
 repository root. The Rust crates support the Node package and are not published
 to crates.io as a stable Rust API.
 
@@ -32,8 +32,8 @@ Run from the repository root:
 cargo fmt --all --check
 cargo clippy --workspace --all-targets --locked -- -D warnings
 cargo test --workspace --locked
-npm run build:debug --prefix crates/excel-rs-node
-npm test --prefix crates/excel-rs-node
+npm run build:debug --prefix crates/exceljs-rs-node
+npm test --prefix crates/exceljs-rs-node
 node docs/build.js
 node scripts/check-docs.js
 ```
@@ -59,10 +59,10 @@ difference. Add regressions for fixes and document API differences in
 
 ## Architecture
 
-- `crates/excel-rs-node/lib/doc`: JavaScript workbook, worksheet, row, and cell objects.
-- `crates/excel-rs-node/lib/xlsx`, `lib/csv`, and `lib/stream`: public I/O APIs.
-- `crates/excel-rs/src`: Rust ZIP, XML, CSV, and model processing.
-- `crates/excel-rs-node/src`: N-API bindings.
+- `crates/exceljs-rs-node/lib/doc`: JavaScript workbook, worksheet, row, and cell objects.
+- `crates/exceljs-rs-node/lib/xlsx`, `lib/csv`, and `lib/stream`: public I/O APIs.
+- `crates/exceljs-rs/src`: Rust ZIP, XML, CSV, and model processing.
+- `crates/exceljs-rs-node/src`: N-API bindings.
 - `fixtures`: input workbooks and regression snapshots.
 - `compat`: upstream public API compatibility tests.
 
@@ -85,7 +85,7 @@ Keep examples runnable and avoid claims that tests or measurements do not suppor
 ## Benchmarks
 
 ```sh
-npm run build --prefix crates/excel-rs-node
+npm run build --prefix crates/exceljs-rs-node
 npm ci --prefix bench
 node bench/run.js 100000
 ```

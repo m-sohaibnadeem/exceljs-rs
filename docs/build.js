@@ -43,15 +43,15 @@ function layout(file, title, description, body) {
 <body>
 <a class="skip-link" href="#content">Skip to content</a>
 <header class="top"><div class="top-inner">
-  <a class="brand" href="./">excel<span>-rs</span></a>
+  <a class="brand" href="./">exceljs<span>-rs</span></a>
   <nav class="nav" aria-label="Main">
 ${nav}
-    <a class="gh" href="https://github.com/m-sohaibnadeem/excel-rs">GitHub</a>
+    <a class="gh" href="https://github.com/m-sohaibnadeem/exceljs-rs">GitHub</a>
   </nav>
 </div></header>
 ${body.trim().replace('<main', '<main id="content"')}
 <footer><div class="inner">
-  excel-rs is MIT licensed. <a href="https://github.com/m-sohaibnadeem/excel-rs">Source on GitHub</a>.
+  exceljs-rs is MIT licensed. <a href="https://github.com/m-sohaibnadeem/exceljs-rs">Source on GitHub</a>.
 </div></footer>
 <script src="site.js"></script>
 </body>
@@ -70,7 +70,7 @@ function inline(text) {
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (m, label, href) => {
       // Repository files are linked on GitHub.
-      const url = /^[a-z]+:/.test(href) ? href : `https://github.com/m-sohaibnadeem/excel-rs/blob/main/${href}`;
+      const url = /^[a-z]+:/.test(href) ? href : `https://github.com/m-sohaibnadeem/exceljs-rs/blob/main/${href}`;
       return `<a href="${url}">${label}</a>`;
     })
     .replace(/\u0000(\d+)\u0000/g, (m, i) => codes[Number(i)]);
@@ -147,14 +147,14 @@ function build() {
     path.join(OUT, 'compatibility.html'),
     layout(
       'compatibility.html',
-      'Compatibility | excel-rs',
-      'Every way excel-rs behaves differently from ExcelJS 4.4.0: the ExcelJS bugs it fixes and the engine differences.',
+      'Compatibility | exceljs-rs',
+      'Every way exceljs-rs behaves differently from ExcelJS 4.4.0: the ExcelJS bugs it fixes and the engine differences.',
       `<main>\n${markdown(compat)}\n</main>`
     )
   );
   const security = fs.readFileSync(path.join(DOCS, '..', 'SECURITY.md'), 'utf8');
   fs.writeFileSync(path.join(OUT, 'security.html'), layout(
-    'security.html', 'Security | excel-rs', 'Security reporting and safe handling of untrusted spreadsheet files.',
+    'security.html', 'Security | exceljs-rs', 'Security reporting and safe handling of untrusted spreadsheet files.',
     `<main>\n${markdown(security)}\n</main>`
   ));
   console.log(`docs: built ${fs.readdirSync(OUT).length} files in ${path.relative(process.cwd(), OUT) || '.'}`);

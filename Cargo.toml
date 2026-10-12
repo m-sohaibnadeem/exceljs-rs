@@ -1,13 +1,13 @@
 [workspace]
 resolver = "2"
-members = ["crates/excel-rs", "crates/excel-rs-node"]
+members = ["crates/exceljs-rs", "crates/exceljs-rs-node"]
 
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
 rust-version = "1.88"
 license = "MIT"
-repository = "https://github.com/m-sohaibnadeem/excel-rs"
+repository = "https://github.com/m-sohaibnadeem/exceljs-rs"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

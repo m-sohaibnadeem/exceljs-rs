@@ -1,6 +1,6 @@
 'use strict';
 
-// Renders each [data-chart] as paired horizontal bars (ExcelJS, excel-rs) per
+// Renders each [data-chart] as paired horizontal bars (ExcelJS, exceljs-rs) per
 // row, scaled to the row's ExcelJS value, with a hover/focus tooltip. The
 // same numbers are in the tables below each chart.
 (function () {
@@ -42,7 +42,7 @@
     legend.className = 'legend';
     legend.innerHTML =
       '<span><i style="background:var(--series-2)"></i>ExcelJS 4.4.0</span>' +
-      '<span><i style="background:var(--series-1)"></i>excel-rs</span>';
+      '<span><i style="background:var(--series-1)"></i>exceljs-rs</span>';
     host.append(title, sub, legend);
     for (const [name, detail, a, b] of spec.rows) {
       const row = document.createElement('div');
@@ -60,7 +60,7 @@
       const ratio = spec.unit === 's' ? `${(a / b).toFixed(1)}× faster` : `${Math.round((1 - b / a) * 100)}% less`;
       bars.append(
         bar('a', a, a, spec.unit, `${name}: ExcelJS ${fmt(a, spec.unit)}`),
-        bar('b', b, a, spec.unit, `${name}: excel-rs ${fmt(b, spec.unit)} (${ratio})`, ratio)
+        bar('b', b, a, spec.unit, `${name}: exceljs-rs ${fmt(b, spec.unit)} (${ratio})`, ratio)
       );
       row.append(label, bars);
       host.appendChild(row);

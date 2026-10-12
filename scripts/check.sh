@@ -8,7 +8,7 @@ cd "$(dirname "$0")/.."
 cargo fmt --all --check
 cargo clippy --workspace --all-targets --locked -- -D warnings
 cargo test --workspace --locked
-(cd crates/excel-rs-node && npm run build:debug && npm test && npm run test:types)
+(cd crates/exceljs-rs-node && npm run build:debug && npm test && npm run test:types)
 node docs/build.js
 node scripts/check-docs.js
 (cd compat && node run.js)
