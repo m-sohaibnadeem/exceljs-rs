@@ -1,0 +1,37 @@
+[package]
+name = "excel-rs-node"
+description = "Node.js bindings (napi-rs) for the excel-rs engine."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+excel-rs = { path = "../excel-rs" }
+# N-API bindings and the #[napi] macro.
+napi = { version = "3.14.2", default-features = false, features = ["napi4"] }
+napi-derive = "3.6.12"
+# JSON for the workbook model (same version the engine uses).
+serde_json = "1"
+
+[build-dependencies]
+# Sets the linker flags a Node addon needs.
+napi-build = "2.6.0"
+
+# Same as [workspace.lints] except unsafe_code: napi-derive's generated code
+# carries #[allow(unsafe_code)], which `forbid` rejects. `deny` still fails
+# the build for any hand-written unsafe in this crate.
+[lints.rust]
+unsafe_code = "deny"
+missing_debug_implementations = "allow"
+
+[lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+indexing_slicing = "deny"

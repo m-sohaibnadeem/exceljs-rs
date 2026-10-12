@@ -1,0 +1,73 @@
+{
+  "name": "excel-rs",
+  "version": "0.1.0",
+  "description": "XLSX and CSV for Node.js with a Rust engine and an ExcelJS-compatible API.",
+  "keywords": [
+    "excel",
+    "xlsx",
+    "exceljs",
+    "spreadsheet",
+    "csv",
+    "stream",
+    "rust",
+    "napi"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/m-sohaibnadeem/excel-rs.git",
+    "directory": "crates/excel-rs-node"
+  },
+  "homepage": "https://m-sohaibnadeem.github.io/excel-rs/",
+  "bugs": {
+    "url": "https://github.com/m-sohaibnadeem/excel-rs/issues"
+  },
+  "main": "index.js",
+  "types": "index.d.ts",
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "lib/",
+    "native.js",
+    "native.d.ts",
+    "LICENSE-EXCELJS",
+    "LICENSE-THIRD-PARTY",
+    "LICENSE-RUST-DEPENDENCIES"
+  ],
+  "napi": {
+    "binaryName": "excel-rs",
+    "targets": [
+      "x86_64-unknown-linux-gnu",
+      "aarch64-unknown-linux-gnu",
+      "x86_64-apple-darwin",
+      "aarch64-apple-darwin",
+      "x86_64-pc-windows-msvc"
+    ]
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "napi build --platform --release --js native.js --dts native.d.ts -- --locked",
+    "build:debug": "napi build --platform --js native.js --dts native.d.ts -- --locked",
+    "test": "node --test test/*.test.js",
+    "prepack": "node scripts/copy-docs.js",
+    "artifacts": "napi artifacts",
+    "prepublishOnly": "node scripts/check-release.js",
+    "release:prepare": "node scripts/prepare-release.js",
+    "release:publish": "node scripts/publish-release.js",
+    "release:pack": "node scripts/pack-release.js",
+    "test:package": "node scripts/test-package.js",
+    "test:types": "tsc --noEmit --strict --module nodenext --target es2022 test/types.ts && tsc --noEmit --strict --module esnext --moduleResolution bundler --target es2022 test/types.ts",
+    "release:publish-tarballs": "node scripts/publish-tarballs.js"
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "3.10.8",
+    "@types/node": "22.20.5",
+    "typescript": "7.0.2"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  }
+}

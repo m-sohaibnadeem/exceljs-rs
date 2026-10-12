@@ -1,0 +1,117 @@
+<!-- title: Guide | excel-rs
+     description: Install excel-rs, read and write workbooks, stream large files, use CSV and TypeScript, and move from ExcelJS. -->
+<main>
+<h1>Guide</h1>
+<p>This guide covers the main Node.js APIs. See the <a href="api.html">API reference</a> for signatures and options and <a href="compatibility.html">compatibility</a> for known differences from ExcelJS 4.4.0.</p><p>JavaScript snippets below use CommonJS. Put snippets containing <code>await</code> inside an async function, as shown in the complete <a href="index.html">getting-started example</a>. Handle rejected promises in your application.</p>
+
+<h2 id="install">Install</h2>
+<pre><code>npm install excel-rs</code></pre>
+<p>Requirements: Node.js 22 or later. npm installs a prebuilt binary for your platform:</p>
+<div class="table-wrap"><table>
+  <thead><tr><th>OS</th><th>Architectures</th></tr></thead>
+  <tbody>
+    <tr><td>Linux (glibc)</td><td>x64, arm64</td></tr>
+    <tr><td>macOS</td><td>x64, arm64 (Apple silicon)</td></tr>
+    <tr><td>Windows</td><td>x64</td></tr>
+  </tbody>
+</table></div>
+<p>Other platforms, including Alpine Linux (musl), have no prebuilt package and are not tested by the release workflow. To attempt a source build, see <a href="https://github.com/m-sohaibnadeem/excel-rs/blob/main/CONTRIBUTING.md#build">CONTRIBUTING.md</a>.</p>
+
+<h2 id="from-exceljs">Moving from ExcelJS</h2>
+<p>Start by changing the package import, then run your tests and compare representative workbooks:</p>
+<pre><code>// before
+const ExcelJS = require('exceljs');
+// after
+const ExcelJS = require('excel-rs');</code></pre>
+<ul>
+  <li>Workbooks, worksheets, rows, cells, styles, formulas, merges, tables, images, data validation, conditional formatting, defined names and worksheet protection target the ExcelJS 4.4.0 API.</li>
+  <li>Compatibility tests compare fixture values and styles. They cannot cover every workbook or application.</li>
+  <li>The differences are fixed ExcelJS bugs and a few engine details, all listed on the <a href="compatibility.html">compatibility</a> page. Check it if your code relies on an ExcelJS quirk.</li>
+  <li>The browser bundle (<code>exceljs/dist/exceljs.min.js</code>) has no equivalent: excel-rs is a native Node.js addon.</li>
+</ul>
+
+<h2 id="read-write">Read and write workbooks</h2>
+<pre><code>const ExcelJS = require('excel-rs');
+
+// From a file, a Buffer or a stream
+const workbook = new ExcelJS.Workbook();
+await workbook.xlsx.readFile('in.xlsx');
+// await workbook.xlsx.load(buffer);
+// await workbook.xlsx.read(readableStream);
+
+workbook.eachSheet(sheet => {
+  sheet.eachRow((row, rowNumber) => {
+    console.log(rowNumber, row.values);
+  });
+});
+
+// To a file, a Buffer or a stream
+await workbook.xlsx.writeFile('out.xlsx');
+const buffer = await workbook.xlsx.writeBuffer();</code></pre>
+
+<h3>Build a workbook</h3>
+<pre><code>const book = new ExcelJS.Workbook();
+const ws = book.addWorksheet('Sales', {views: [{state: 'frozen', ySplit: 1}]});
+ws.columns = [
+  {header: 'Date', key: 'date', width: 12, style: {numFmt: 'yyyy-mm-dd'}},
+  {header: 'Region', key: 'region', width: 16},
+  {header: 'Amount', key: 'amount', width: 14, style: {numFmt: '#,##0.00'}},
+];
+ws.addRow({date: new Date(), region: 'North', amount: 1250.5});
+ws.getRow(1).font = {bold: true};
+ws.getCell('D2').value = {formula: 'C2*1.2', result: 1500.6};
+
+await book.xlsx.writeFile('sales.xlsx');</code></pre>
+
+<h2 id="streaming">Large files: streaming</h2>
+<p><code>workbook.xlsx.readFile</code> and <code>writeBuffer</code> hold the whole workbook as objects, one per cell. Use streaming APIs when you can process rows incrementally:</p>
+<pre><code>// Write: rows are rendered and compressed as you commit them
+const writer = new ExcelJS.stream.xlsx.WorkbookWriter({
+  filename: 'big.xlsx',
+  useSharedStrings: false, // smaller memory for mostly-unique text
+});
+const out = writer.addWorksheet('Data');
+for (let i = 0; i &lt; 100_000; i++) {
+  out.addRow([i, `row ${i}`, new Date()]).commit();
+}
+await writer.commit();
+
+// Read: one row at a time
+const reader = new ExcelJS.stream.xlsx.WorkbookReader('big.xlsx', {
+  sharedStrings: 'cache',
+  worksheets: 'emit',
+});
+for await (const worksheet of reader) {
+  for await (const row of worksheet) {
+    // row.number, row.values, row.getCell(1).value
+  }
+}</code></pre>
+<p class="note">The streaming reader reads its input to the end before it parses, so the compressed file is held in memory (it is usually a fraction of the sheet's size). Each worksheet is then parsed in batches, but shared strings, styles, and other metadata still consume memory. Keep each worksheet within Excel's 1,048,576-row limit.</p>
+
+<h2 id="csv">CSV</h2>
+<pre><code>const workbook = new ExcelJS.Workbook();
+const sheet = await workbook.csv.readFile('data.csv', {
+  parserOptions: {delimiter: ';'},
+});
+await workbook.csv.writeFile('out.csv', {formatterOptions: {delimiter: ','}});</code></pre>
+<p>Options are those of ExcelJS (<code>parserOptions</code>, <code>formatterOptions</code>, <code>dateFormats</code>, <code>map</code>, <code>includeEmptyRows</code>). Input is parsed chunk by chunk as it arrives.</p>
+
+<p>Formulas are stored with optional cached results; excel-rs does not calculate them. Worksheet protection restricts editing and does not encrypt files.</p>
+<h2 id="typescript">TypeScript</h2>
+<p>Type definitions are included, with the same names as ExcelJS's. They check under <code>strict</code> with <code>nodenext</code> or <code>bundler</code> module resolution.</p>
+<p>Install <code>@types/node</code> in TypeScript projects.</p>
+<pre><code>import * as ExcelJS from 'excel-rs';
+
+const workbook: ExcelJS.Workbook = new ExcelJS.Workbook();
+const sheet: ExcelJS.Worksheet = workbook.addWorksheet('Data');
+const cell: ExcelJS.Cell = sheet.getCell('A1');</code></pre>
+
+<h2 id="untrusted">Untrusted files</h2>
+<p>Neither streaming nor an upload-size limit prevents resource exhaustion. Parse untrusted files in a separate process with memory and time limits. CSV quoting does not prevent formula injection when exported data is opened in a spreadsheet application. Read the <a href="security.html">security guidance</a>.</p>
+
+<h2 id="help">Getting help</h2>
+<ul>
+  <li>Report a bug or a file that behaves differently from ExcelJS: <a href="https://github.com/m-sohaibnadeem/excel-rs/issues">GitHub issues</a>. Attach a minimal reproduction with confidential data removed. Report security problems privately.</li>
+  <li>Contribute: <a href="https://github.com/m-sohaibnadeem/excel-rs/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a>.</li>
+</ul>
+</main>

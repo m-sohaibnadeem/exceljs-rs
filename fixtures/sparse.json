@@ -1,0 +1,55 @@
+{
+  "date1904": false,
+  "file": "sparse.xlsx",
+  "worksheets": [
+    {
+      "actualColumnCount": 4,
+      "actualRowCount": 3,
+      "cells": [
+        {
+          "address": "A1",
+          "col": 1,
+          "row": 1,
+          "type": "String",
+          "value": "top-left"
+        },
+        {
+          "address": "Z1",
+          "col": 26,
+          "row": 1,
+          "type": "Number",
+          "value": 26
+        },
+        {
+          "address": "XFD1",
+          "col": 16384,
+          "row": 1,
+          "type": "String",
+          "value": "last column"
+        },
+        {
+          "address": "AA100",
+          "col": 27,
+          "row": 100,
+          "type": "String",
+          "value": "AA100"
+        },
+        {
+          "address": "A1048576",
+          "col": 1,
+          "row": 1048576,
+          "type": "String",
+          "value": "last row"
+        }
+      ],
+      "columnCount": 16384,
+      "dimensions": "A1:XFD1048576",
+      "id": 1,
+      "merges": [],
+      "name": "Sparse",
+      "orderNo": 0,
+      "rowCount": 1048576,
+      "state": "visible"
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+<!-- title: excel-rs | Spreadsheets for Node.js
+     description: Read, write, and stream XLSX and CSV files with a Rust engine and an ExcelJS-compatible Node.js API. -->
+<main>
+<section class="hero">
+<h1>Spreadsheets for Node.js.<br>Powered by Rust.</h1>
+<p class="lead">Read, write, and stream XLSX and CSV files with an ExcelJS-compatible API. Use familiar workbook objects, with parsing and compression handled by Rust.</p>
+<div class="cta"><span class="install">npm install excel-rs</span><a class="btn" href="guide.html">Get started</a><a class="btn secondary" href="api.html">API reference</a></div>
+</section>
+<div class="features">
+<div class="feature"><h3>Workbook editing</h3><p>Work with worksheets, rows, cells, styles, merges, formulas, tables, and images.</p></div>
+<div class="feature"><h3>ExcelJS compatibility</h3><p>The API targets ExcelJS 4.4.0. Review <a href="compatibility.html">known differences</a> and run your application's tests when migrating.</p></div>
+<div class="feature"><h3>Streaming APIs</h3><p>Commit rows as you write and iterate over rows as you read. Memory usage depends on the file and the options you choose.</p></div>
+<div class="feature"><h3>TypeScript included</h3><p>Use the shipped declarations for workbook objects, cell values, styles, and read and write options.</p></div>
+</div>
+<h2>Create a workbook</h2>
+<pre><code>const {Workbook} = require('excel-rs');
+
+async function main() {
+  const workbook = new Workbook();
+  const sheet = workbook.addWorksheet('Sales');
+  sheet.addRow(['Item', 'Amount']);
+  sheet.addRow(['Notebook', 12.5]);
+  sheet.getRow(1).font = {bold: true};
+  await workbook.xlsx.writeFile('sales.xlsx');
+}
+
+main().catch(error =&gt; {
+  console.error(error);
+  process.exitCode = 1;
+});</code></pre>
+<p>Save as <code>example.cjs</code> and run <code>node example.cjs</code>. The <a href="guide.html">guide</a> covers installation, reading files, streaming, CSV, and migration.</p>
+<h2>Runtime and platforms</h2>
+<p>Node.js 22 or later. Release targets: Linux x64 and arm64 (glibc), macOS x64 and arm64, and Windows x64. A native addon is required; browsers are not supported.</p>
+<h2>Performance</h2>
+<p>See the <a href="benchmarks.html">measurements and reproduction steps</a> for XLSX and CSV workloads. Performance depends on your input and environment.</p>
+<h2>Handling uploads</h2>
+<p>Untrusted workbooks require process memory and time limits. See the <a href="security.html">security guidance</a> before accepting uploads.</p>
+<p>excel-rs is an independent project and is not affiliated with ExcelJS. Distributed under MIT, with included third-party notices.</p>
+</main>

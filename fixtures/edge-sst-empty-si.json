@@ -1,0 +1,34 @@
+{
+  "date1904": false,
+  "file": "edge-sst-empty-si.xlsx",
+  "worksheets": [
+    {
+      "actualColumnCount": 2,
+      "actualRowCount": 1,
+      "cells": [
+        {
+          "address": "A1",
+          "col": 1,
+          "row": 1,
+          "type": "String",
+          "value": ""
+        },
+        {
+          "address": "B1",
+          "col": 2,
+          "row": 1,
+          "type": "String",
+          "value": ""
+        }
+      ],
+      "columnCount": 2,
+      "dimensions": "A1:B1",
+      "id": 1,
+      "merges": [],
+      "name": "Edge",
+      "orderNo": 0,
+      "rowCount": 1,
+      "state": "visible"
+    }
+  ]
+}

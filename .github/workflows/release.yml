@@ -1,0 +1,196 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish to npm after all checks (select a matching version tag)
+        type: boolean
+        default: false
+      authentication:
+        description: Use bootstrap-token only for the first publication
+        type: choice
+        default: trusted
+        options:
+          - trusted
+          - bootstrap-token
+
+permissions:
+  contents: read
+
+concurrency:
+  group: npm-release
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+      - name: Check repository identity, version, and publish ref
+        env:
+          RELEASE_PUBLISH: ${{ (github.event_name == 'push' && vars.NPM_TRUSTED_PUBLISHING == 'true') || inputs.publish }}
+          REPOSITORY_PRIVATE: ${{ github.event.repository.private }}
+        run: node scripts/check-release-config.js
+
+  checks:
+    needs: preflight
+    uses: ./.github/workflows/ci.yml
+
+  build:
+    needs: checks
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-22.04
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-22.04-arm
+          - target: x86_64-apple-darwin
+            os: macos-15-intel
+          - target: aarch64-apple-darwin
+            os: macos-15
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: crates/excel-rs-node
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249 # stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+      - run: npm ci
+      - run: npx --no-install napi build --platform --release --js native.js --dts native.d.ts --target ${{ matrix.target }} -- --locked
+      - run: npm test
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: bindings-${{ matrix.target }}
+          path: crates/excel-rs-node/*.node
+          if-no-files-found: error
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: matrix.target == 'x86_64-unknown-linux-gnu'
+        with:
+          name: js-binding
+          path: |
+            crates/excel-rs-node/native.js
+            crates/excel-rs-node/native.d.ts
+          if-no-files-found: error
+
+  package:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: crates/excel-rs-node
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+      - run: npm ci
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          path: crates/excel-rs-node/artifacts
+      - run: |
+          cp artifacts/js-binding/native.js artifacts/js-binding/native.d.ts .
+          npx --no-install napi create-npm-dirs
+          npx --no-install napi artifacts
+          npm run release:prepare
+          npm run release:publish -- --dry-run
+      - name: Verify installed tarballs
+        run: npm run test:package
+      - name: Pack release files
+        run: npm run release:pack
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: npm-release
+          path: |
+            crates/excel-rs-node/release/*.tgz
+            crates/excel-rs-node/release/release-manifest.json
+          if-no-files-found: error
+
+  verify:
+    needs: package
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, ubuntu-22.04-arm, macos-15-intel, macos-15, windows-latest]
+        node: [22, 24]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: ${{ matrix.node }}
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: npm-release
+          path: release
+      - name: Verify release archive checksums
+        env:
+          EXCEL_RS_RELEASE_DIR: ${{ github.workspace }}/release
+        run: npm run release:publish-tarballs --prefix crates/excel-rs-node -- --verify-only
+      - name: Install and test the release archives
+        env:
+          EXCEL_RS_RELEASE_DIR: ${{ github.workspace }}/release
+        run: npm run test:package --prefix crates/excel-rs-node
+
+  publish:
+    if: ((github.event_name == 'push' && vars.NPM_TRUSTED_PUBLISHING == 'true') || inputs.publish) && startsWith(github.ref, 'refs/tags/v')
+    needs: [package, verify]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - name: Ensure trusted publishing support
+        run: npm install --global npm@11.12.1
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: npm-release
+          path: release
+      - name: Publish with npm trusted publishing
+        if: inputs.authentication != 'bootstrap-token'
+        env:
+          EXCEL_RS_RELEASE_DIR: ${{ github.workspace }}/release
+        run: npm run release:publish-tarballs --prefix crates/excel-rs-node
+      - name: First publication using the bootstrap token
+        if: github.event_name == 'workflow_dispatch' && inputs.authentication == 'bootstrap-token'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          EXCEL_RS_RELEASE_DIR: ${{ github.workspace }}/release
+        run: |
+          node -e "if (!process.env.NODE_AUTH_TOKEN) throw new Error('Set NPM_TOKEN in the npm GitHub environment before bootstrap publication')"
+          npm run release:publish-tarballs --prefix crates/excel-rs-node

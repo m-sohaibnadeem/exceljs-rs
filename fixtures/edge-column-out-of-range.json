@@ -1,0 +1,4 @@
+{
+  "error": "Out of bounds. Invalid column letter: XFE",
+  "file": "edge-column-out-of-range.xlsx"
+}

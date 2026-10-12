@@ -1,0 +1,79 @@
+{
+  "date1904": true,
+  "file": "dates-1904.xlsx",
+  "worksheets": [
+    {
+      "actualColumnCount": 2,
+      "actualRowCount": 2,
+      "cells": [
+        {
+          "address": "A1",
+          "col": 1,
+          "row": 1,
+          "style": {
+            "border": {},
+            "fill": {
+              "pattern": "none",
+              "type": "pattern"
+            },
+            "font": {
+              "color": {
+                "theme": 1
+              },
+              "family": 2,
+              "name": "Calibri",
+              "scheme": "minor",
+              "size": 11
+            },
+            "numFmt": "mm-dd-yy"
+          },
+          "type": "Date",
+          "value": {
+            "date": "2024-02-29T00:00:00.000Z"
+          }
+        },
+        {
+          "address": "C1",
+          "col": 3,
+          "row": 1,
+          "type": "Number",
+          "value": 45351
+        },
+        {
+          "address": "A2",
+          "col": 1,
+          "row": 2,
+          "style": {
+            "border": {},
+            "fill": {
+              "pattern": "none",
+              "type": "pattern"
+            },
+            "font": {
+              "color": {
+                "theme": 1
+              },
+              "family": 2,
+              "name": "Calibri",
+              "scheme": "minor",
+              "size": 11
+            },
+            "numFmt": "mm-dd-yy"
+          },
+          "type": "Date",
+          "value": {
+            "date": "1904-01-02T00:00:00.000Z"
+          }
+        }
+      ],
+      "columnCount": 3,
+      "dimensions": "A1:C2",
+      "id": 1,
+      "merges": [],
+      "name": "Dates1904",
+      "orderNo": 0,
+      "rowCount": 2,
+      "state": "visible"
+    }
+  ]
+}

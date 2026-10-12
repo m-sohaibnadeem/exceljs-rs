@@ -1,0 +1,28 @@
+[package]
+name = "excel-rs"
+description = "Engine of excel-rs (ExcelJS's API for Node.js, implemented in Rust)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+# The engine of the Node package; its API follows the Node package's needs, not
+# a stable Rust API, and "excel-rs" is another crate on crates.io.
+publish = false
+
+[lib]
+name = "excel_rs"
+
+[dependencies]
+# .xlsx is a ZIP of XML parts. Only stored and deflate entries occur, so only
+# the pure-Rust deflate backend is enabled.
+zip = { version = "9.0.1", default-features = false, features = ["deflate-flate2-zlib-rs"] }
+# Pull parser for every XML part.
+quick-xml = "0.42.0"
+# The workbook model exchanged with the JS object model (ExcelJS's model
+# objects). preserve_order keeps JS key order, which decides XML attribute order.
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order", "float_roundtrip"] }
+
+[lints]
+workspace = true

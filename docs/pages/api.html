@@ -1,0 +1,70 @@
+<!-- title: API reference | excel-rs
+     description: Workbook, worksheet, cell, XLSX, CSV, and streaming APIs for excel-rs. -->
+<main>
+<h1>API reference</h1>
+<p>The package exports <code>Workbook</code>, <code>stream.xlsx.WorkbookWriter</code>, <code>stream.xlsx.WorkbookReader</code>, and value enums. The <a href="https://github.com/m-sohaibnadeem/excel-rs/blob/main/crates/excel-rs-node/index.d.ts">TypeScript declarations</a> describe the available types. This page covers the main application APIs; the <a href="guide.html">guide</a> provides examples.</p>
+<p>Worksheet, row, and cell objects come from a workbook; they are not top-level constructors. Rows and columns use one-based indices. Worksheet IDs are not array positions and can have gaps after deletion.</p>
+<h2 id="workbook">Workbook and worksheets</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>API</th><th>Behavior</th></tr></thead><tbody>
+<tr><td><code>new Workbook()</code></td><td>Create an in-memory workbook.</td></tr>
+<tr><td><code>addWorksheet(name, options?)</code></td><td>Return a worksheet. Options include properties, views, page setup, and state.</td></tr>
+<tr><td><code>getWorksheet(nameOrId)</code></td><td>Look up a worksheet; returns undefined if absent.</td></tr>
+<tr><td><code>removeWorksheet(id)</code></td><td>Remove a worksheet by ID.</td></tr>
+<tr><td><code>eachSheet((sheet, id) =&gt; {})</code></td><td>Visit worksheets in workbook order.</td></tr>
+<tr><td><code>worksheets</code></td><td>Array of worksheets in workbook order.</td></tr>
+<tr><td><code>creator</code>, <code>created</code>, <code>modified</code></td><td>Workbook metadata. Date properties accept Date values.</td></tr>
+</tbody></table></div>
+<h2 id="cells">Rows, columns, and cells</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>API</th><th>Behavior</th></tr></thead><tbody>
+<tr><td><code>sheet.columns = [{header, key, width}]</code></td><td>Define columns. Keys allow object-based row insertion.</td></tr>
+<tr><td><code>sheet.addRow(values)</code></td><td>Append an array or keyed object and return a row.</td></tr>
+<tr><td><code>sheet.addRows(rows)</code></td><td>Append multiple rows.</td></tr>
+<tr><td><code>sheet.getRow(number)</code></td><td>Get or create a row.</td></tr>
+<tr><td><code>sheet.getColumn(numberOrKey)</code></td><td>Get a column by index, letter, or configured key.</td></tr>
+<tr><td><code>sheet.getCell('A1')</code></td><td>Get or create a cell.</td></tr>
+<tr><td><code>row.getCell(numberOrKey)</code></td><td>Get a cell in a row.</td></tr>
+<tr><td><code>sheet.eachRow(options?, callback)</code></td><td>Visit nonempty rows; use includeEmpty to include gaps.</td></tr>
+<tr><td><code>row.eachCell(options?, callback)</code></td><td>Visit cells; use includeEmpty to include gaps.</td></tr>
+<tr><td><code>sheet.mergeCells('A1:B2')</code></td><td>Merge a range. The top-left cell is the master.</td></tr>
+<tr><td><code>sheet.unMergeCells('A1:B2')</code></td><td>Unmerge a range in an in-memory worksheet.</td></tr>
+</tbody></table></div>
+<p><code>cell.value</code> accepts null, strings, numbers, booleans, Date values, or structured values:</p>
+<pre><code>cell.value = {formula: 'SUM(B2:B10)', result: 42};
+cell.value = {text: 'Project', hyperlink: 'https://example.com'};
+cell.value = {richText: [{text: 'Total', font: {bold: true}}]};
+cell.value = {error: '#N/A'};</code></pre>
+<p>Formula results are cached values supplied by the caller or read from a file. excel-rs does not calculate formulas. <code>row.values</code> is a sparse, one-based array when read; index 0 is unused.</p>
+<h2 id="styles">Styles and worksheet features</h2>
+<pre><code>sheet.getCell('B2').numFmt = '#,##0.00';
+sheet.getRow(1).font = {bold: true};
+sheet.getCell('A1').alignment = {vertical: 'middle', horizontal: 'center'};
+sheet.getCell('A1').fill = {
+  type: 'pattern', pattern: 'solid', fgColor: {argb: 'FFE8F0FE'},
+};
+sheet.views = [{state: 'frozen', ySplit: 1}];
+sheet.autoFilter = 'A1:B10';</code></pre>
+<p>Colors use eight-digit ARGB strings. Style objects can be shared between cells; clone a style before changing it when cells should have independent styles.</p>
+<p>Other worksheet APIs include <code>addTable(options)</code>, <code>addConditionalFormatting(options)</code>, <code>cell.dataValidation</code>, <code>cell.note</code>, and <code>protect(password, options)</code>. Add images with <code>workbook.addImage({buffer, extension})</code> and <code>sheet.addImage(imageId, range)</code>. Images require an in-memory workbook. Protection is not encryption.</p>
+<h2 id="xlsx">XLSX I/O</h2>
+<p>All methods below are asynchronous. Await completion and handle rejection.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>API</th><th>Input or result</th></tr></thead><tbody>
+<tr><td><code>workbook.xlsx.readFile(path, options?)</code></td><td>Read a file into the workbook; resolves to that workbook.</td></tr>
+<tr><td><code>workbook.xlsx.load(data, options?)</code></td><td>Load a Buffer, Uint8Array, or ArrayBuffer; resolves to the workbook.</td></tr>
+<tr><td><code>workbook.xlsx.read(readable, options?)</code></td><td>Buffer a readable stream, then load it.</td></tr>
+<tr><td><code>workbook.xlsx.writeFile(path, options?)</code></td><td>Write a file.</td></tr>
+<tr><td><code>workbook.xlsx.writeBuffer(options?)</code></td><td>Resolve to a Node.js Buffer containing the ZIP archive.</td></tr>
+<tr><td><code>workbook.xlsx.write(writable, options?)</code></td><td>Build the archive in memory, then write it to the destination.</td></tr>
+</tbody></table></div>
+<p>Read options include <code>ignoreNodes</code> (worksheet XML element names), <code>maxRows</code>, <code>maxCols</code>, and <code>base64</code> for encoded string input. Row and column limits do not bound decompression or total memory use. A failed load can leave a partially loaded workbook; discard it after an error.</p>
+<p>Write options include <code>useSharedStrings</code> and <code>zip: {compressionOptions: {level: 6}}</code>. The Rust engine handles compression; options for other ZIP libraries are not a promise of equivalent behavior.</p>
+<h2 id="csv">CSV I/O</h2>
+<p><code>workbook.csv.readFile(path, options?)</code> and <code>read(readable, options?)</code> resolve to the loaded worksheet. <code>writeFile(path, options?)</code>, <code>write(writable, options?)</code>, and <code>writeBuffer(options?)</code> export a worksheet.</p>
+<p>Read options include <code>sheetName</code>, <code>parserOptions</code>, <code>dateFormats</code>, and <code>map(value, index)</code>. Write options include <code>sheetName</code>, <code>sheetId</code>, <code>formatterOptions</code>, <code>dateFormat</code>, <code>dateUTC</code>, <code>includeEmptyRows</code>, and <code>map(value, index)</code>. Use <code>delimiter</code> within parser or formatter options. CSV does not preserve workbook formatting, formulas, multiple sheets, or value types.</p>
+<h2 id="streaming">Streaming</h2>
+<p><code>new stream.xlsx.WorkbookWriter({filename, useStyles, useSharedStrings})</code> writes to a file. Use <code>stream</code> instead of filename to supply a writable destination. Styles and shared strings are disabled by default. Call <code>row.commit()</code> when a row is complete, then await <code>writer.commit()</code>. Committed rows cannot be edited. Shared strings can grow with the number of distinct values.</p>
+<p><code>new stream.xlsx.WorkbookReader(input, options?)</code> accepts a file path or readable stream. Iterate over worksheets and rows with <code>for await</code>. Defaults: worksheets emit, shared strings cache, hyperlinks ignore, styles ignore, and entries ignore. Set <code>styles: 'cache'</code> when cell styles or date interpretation are needed.</p>
+<p>The streaming reader holds compressed input in memory before parsing. Streaming APIs have a narrower editing surface than the in-memory workbook. See the <a href="compatibility.html">known limitations</a> and <a href="security.html">security guidance</a>.</p>
+</main>

@@ -1,0 +1,27 @@
+{
+  "date1904": false,
+  "file": "edge-leading-slash.xlsx",
+  "worksheets": [
+    {
+      "actualColumnCount": 1,
+      "actualRowCount": 1,
+      "cells": [
+        {
+          "address": "A1",
+          "col": 1,
+          "row": 1,
+          "type": "String",
+          "value": "slash"
+        }
+      ],
+      "columnCount": 1,
+      "dimensions": "A1:A1",
+      "id": 1,
+      "merges": [],
+      "name": "Edge",
+      "orderNo": 0,
+      "rowCount": 1,
+      "state": "visible"
+    }
+  ]
+}

@@ -1,0 +1,135 @@
+{
+  "date1904": false,
+  "file": "styles.xlsx",
+  "worksheets": [
+    {
+      "actualColumnCount": 1,
+      "actualRowCount": 4,
+      "cells": [
+        {
+          "address": "A1",
+          "col": 1,
+          "row": 1,
+          "style": {
+            "border": {},
+            "fill": {
+              "pattern": "none",
+              "type": "pattern"
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FF0000FF"
+              },
+              "name": "Calibri",
+              "size": 12
+            }
+          },
+          "type": "String",
+          "value": "bold blue"
+        },
+        {
+          "address": "A2",
+          "col": 1,
+          "row": 2,
+          "style": {
+            "border": {},
+            "fill": {
+              "fgColor": {
+                "argb": "FFFFFF00"
+              },
+              "pattern": "solid",
+              "type": "pattern"
+            },
+            "font": {
+              "color": {
+                "theme": 1
+              },
+              "family": 2,
+              "name": "Calibri",
+              "scheme": "minor",
+              "size": 11
+            }
+          },
+          "type": "Number",
+          "value": 10
+        },
+        {
+          "address": "A3",
+          "col": 1,
+          "row": 3,
+          "style": {
+            "border": {
+              "bottom": {
+                "color": {
+                  "argb": "FFFF0000"
+                },
+                "style": "double"
+              },
+              "left": {
+                "style": "thin"
+              },
+              "right": {
+                "style": "thin"
+              },
+              "top": {
+                "style": "thin"
+              }
+            },
+            "fill": {
+              "pattern": "none",
+              "type": "pattern"
+            },
+            "font": {
+              "color": {
+                "theme": 1
+              },
+              "family": 2,
+              "name": "Calibri",
+              "scheme": "minor",
+              "size": 11
+            }
+          },
+          "type": "Boolean",
+          "value": true
+        },
+        {
+          "address": "A4",
+          "col": 1,
+          "row": 4,
+          "style": {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+              "wrapText": true
+            },
+            "border": {},
+            "fill": {
+              "pattern": "none",
+              "type": "pattern"
+            },
+            "font": {
+              "color": {
+                "theme": 1
+              },
+              "family": 2,
+              "name": "Calibri",
+              "scheme": "minor",
+              "size": 11
+            }
+          },
+          "type": "String",
+          "value": "wrapped centred"
+        }
+      ],
+      "columnCount": 2,
+      "dimensions": "A1:A4",
+      "id": 1,
+      "merges": [],
+      "name": "Styles",
+      "orderNo": 0,
+      "rowCount": 4,
+      "state": "visible"
+    }
+  ]
+}

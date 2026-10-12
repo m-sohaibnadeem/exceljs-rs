@@ -1,0 +1,159 @@
+{
+  "date1904": false,
+  "file": "numbers.xlsx",
+  "worksheets": [
+    {
+      "actualColumnCount": 2,
+      "actualRowCount": 13,
+      "cells": [
+        {
+          "address": "A1",
+          "col": 1,
+          "row": 1,
+          "type": "Number",
+          "value": 0
+        },
+        {
+          "address": "B1",
+          "col": 2,
+          "row": 1,
+          "style": {
+            "border": {},
+            "fill": {
+              "pattern": "none",
+              "type": "pattern"
+            },
+            "font": {
+              "color": {
+                "theme": 1
+              },
+              "family": 2,
+              "name": "Calibri",
+              "scheme": "minor",
+              "size": 11
+            },
+            "numFmt": "0.00%"
+          },
+          "type": "Number",
+          "value": 0.25
+        },
+        {
+          "address": "A2",
+          "col": 1,
+          "row": 2,
+          "type": "Number",
+          "value": 1
+        },
+        {
+          "address": "B2",
+          "col": 2,
+          "row": 2,
+          "style": {
+            "border": {},
+            "fill": {
+              "pattern": "none",
+              "type": "pattern"
+            },
+            "font": {
+              "color": {
+                "theme": 1
+              },
+              "family": 2,
+              "name": "Calibri",
+              "scheme": "minor",
+              "size": 11
+            },
+            "numFmt": "#,##0.00"
+          },
+          "type": "Number",
+          "value": 1234.5
+        },
+        {
+          "address": "A3",
+          "col": 1,
+          "row": 3,
+          "type": "Number",
+          "value": -1
+        },
+        {
+          "address": "A4",
+          "col": 1,
+          "row": 4,
+          "type": "Number",
+          "value": 42
+        },
+        {
+          "address": "A5",
+          "col": 1,
+          "row": 5,
+          "type": "Number",
+          "value": 3.14159
+        },
+        {
+          "address": "A6",
+          "col": 1,
+          "row": 6,
+          "type": "Number",
+          "value": -2.5
+        },
+        {
+          "address": "A7",
+          "col": 1,
+          "row": 7,
+          "type": "Number",
+          "value": 0.30000000000000004
+        },
+        {
+          "address": "A8",
+          "col": 1,
+          "row": 8,
+          "type": "Number",
+          "value": 1e+21
+        },
+        {
+          "address": "A9",
+          "col": 1,
+          "row": 9,
+          "type": "Number",
+          "value": 1.7976931348623157e+308
+        },
+        {
+          "address": "A10",
+          "col": 1,
+          "row": 10,
+          "type": "Number",
+          "value": 5e-324
+        },
+        {
+          "address": "A11",
+          "col": 1,
+          "row": 11,
+          "type": "Number",
+          "value": 9007199254740992
+        },
+        {
+          "address": "A12",
+          "col": 1,
+          "row": 12,
+          "type": "Number",
+          "value": -9007199254740992
+        },
+        {
+          "address": "A13",
+          "col": 1,
+          "row": 13,
+          "type": "Number",
+          "value": 123456789.12345679
+        }
+      ],
+      "columnCount": 2,
+      "dimensions": "A1:B13",
+      "id": 1,
+      "merges": [],
+      "name": "Numbers",
+      "orderNo": 0,
+      "rowCount": 13,
+      "state": "visible"
+    }
+  ]
+}

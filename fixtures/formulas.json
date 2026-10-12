@@ -1,0 +1,155 @@
+{
+  "date1904": false,
+  "file": "formulas.xlsx",
+  "worksheets": [
+    {
+      "actualColumnCount": 4,
+      "actualRowCount": 4,
+      "cells": [
+        {
+          "address": "A1",
+          "col": 1,
+          "row": 1,
+          "type": "Number",
+          "value": 1
+        },
+        {
+          "address": "B1",
+          "col": 2,
+          "row": 1,
+          "type": "Formula",
+          "value": {
+            "formula": "CONCATENATE(\"a\",\"b\")",
+            "result": "ab"
+          }
+        },
+        {
+          "address": "C1",
+          "col": 3,
+          "row": 1,
+          "type": "Formula",
+          "value": {
+            "formula": "A1*2",
+            "ref": "C1:C3",
+            "result": 2,
+            "shareType": "shared"
+          }
+        },
+        {
+          "address": "D1",
+          "col": 4,
+          "row": 1,
+          "type": "Error",
+          "value": {
+            "error": "#N/A"
+          }
+        },
+        {
+          "address": "A2",
+          "col": 1,
+          "row": 2,
+          "type": "Number",
+          "value": 2
+        },
+        {
+          "address": "B2",
+          "col": 2,
+          "row": 2,
+          "type": "Formula",
+          "value": {
+            "formula": "A1=1",
+            "result": true
+          }
+        },
+        {
+          "address": "C2",
+          "col": 3,
+          "row": 2,
+          "type": "Formula",
+          "value": {
+            "result": 4,
+            "sharedFormula": "C1"
+          }
+        },
+        {
+          "address": "A3",
+          "col": 1,
+          "row": 3,
+          "type": "Formula",
+          "value": {
+            "formula": "A1+A2",
+            "result": 3
+          }
+        },
+        {
+          "address": "B3",
+          "col": 2,
+          "row": 3,
+          "type": "Formula",
+          "value": {
+            "formula": "1/0",
+            "result": {
+              "error": "#DIV/0!"
+            }
+          }
+        },
+        {
+          "address": "C3",
+          "col": 3,
+          "row": 3,
+          "type": "Formula",
+          "value": {
+            "result": 0,
+            "sharedFormula": "C1"
+          }
+        },
+        {
+          "address": "A4",
+          "col": 1,
+          "row": 4,
+          "type": "Formula",
+          "value": {
+            "formula": "A1+A2"
+          }
+        },
+        {
+          "address": "B4",
+          "col": 2,
+          "row": 4,
+          "style": {
+            "border": {},
+            "fill": {
+              "pattern": "none",
+              "type": "pattern"
+            },
+            "font": {
+              "color": {
+                "theme": 1
+              },
+              "family": 2,
+              "name": "Calibri",
+              "scheme": "minor",
+              "size": 11
+            },
+            "numFmt": "yyyy-mm-dd"
+          },
+          "type": "Formula",
+          "value": {
+            "formula": "TODAY()",
+            "result": {
+              "date": "2024-01-01T00:00:00.000Z"
+            }
+          }
+        }
+      ],
+      "columnCount": 4,
+      "dimensions": "A1:D4",
+      "id": 1,
+      "merges": [],
+      "name": "Formulas",
+      "orderNo": 0,
+      "rowCount": 4,
+      "state": "visible"
+    }
+  ]
+}

@@ -1,0 +1,72 @@
+{
+  "date1904": false,
+  "file": "rich-text.xlsx",
+  "worksheets": [
+    {
+      "actualColumnCount": 1,
+      "actualRowCount": 3,
+      "cells": [
+        {
+          "address": "A1",
+          "col": 1,
+          "row": 1,
+          "type": "RichText",
+          "value": {
+            "richText": [
+              {
+                "font": {
+                  "bold": true
+                },
+                "text": "bold "
+              },
+              {
+                "font": {
+                  "color": {
+                    "argb": "FFFF0000"
+                  },
+                  "italic": true
+                },
+                "text": "italic red"
+              },
+              {
+                "text": " plain"
+              }
+            ]
+          }
+        },
+        {
+          "address": "A2",
+          "col": 1,
+          "row": 2,
+          "type": "RichText",
+          "value": {
+            "richText": [
+              {
+                "font": {
+                  "name": "Arial",
+                  "size": 14
+                },
+                "text": "single run"
+              }
+            ]
+          }
+        },
+        {
+          "address": "A3",
+          "col": 1,
+          "row": 3,
+          "type": "String",
+          "value": "plain string next to rich text"
+        }
+      ],
+      "columnCount": 1,
+      "dimensions": "A1:A3",
+      "id": 1,
+      "merges": [],
+      "name": "RichText",
+      "orderNo": 0,
+      "rowCount": 3,
+      "state": "visible"
+    }
+  ]
+}

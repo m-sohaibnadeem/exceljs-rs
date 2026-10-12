@@ -1,0 +1,27 @@
+{
+  "date1904": false,
+  "file": "edge-no-shared-strings.xlsx",
+  "worksheets": [
+    {
+      "actualColumnCount": 1,
+      "actualRowCount": 1,
+      "cells": [
+        {
+          "address": "B1",
+          "col": 2,
+          "row": 1,
+          "type": "Number",
+          "value": 2
+        }
+      ],
+      "columnCount": 2,
+      "dimensions": "B1:B1",
+      "id": 1,
+      "merges": [],
+      "name": "Edge",
+      "orderNo": 0,
+      "rowCount": 1,
+      "state": "visible"
+    }
+  ]
+}

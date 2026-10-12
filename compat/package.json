@@ -1,0 +1,25 @@
+{
+  "name": "excel-rs-compat",
+  "private": true,
+  "description": "Runs ExcelJS 4.4.0's own spec suite against excel-rs.",
+  "scripts": {
+    "fetch": "node fetch-upstream.js",
+    "test": "node run.js",
+    "test:exceljs": "EXCELRS_TARGET=exceljs node run.js"
+  },
+  "devDependencies": {
+    "chai": "4.5.0",
+    "chai-datetime": "1.8.1",
+    "chai-xml": "0.4.1",
+    "dirty-chai": "2.0.1",
+    "exceljs": "4.4.0",
+    "express": "4.22.3",
+    "got": "11.8.6",
+    "mocha": "12.0.3"
+  },
+  "overrides": {
+    "exceljs": {
+      "uuid": "11.1.1"
+    }
+  }
+}

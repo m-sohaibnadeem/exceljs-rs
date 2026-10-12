@@ -1,0 +1,31 @@
+name: Bug report
+description: Report a reproducible problem with excel-rs.
+body:
+  - type: markdown
+    attributes:
+      value: Report vulnerabilities privately through the Security tab. Remove confidential data from sample workbooks.
+  - type: input
+    id: version
+    attributes:
+      label: excel-rs version
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Node.js version, OS, and architecture
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Include a small code example and, if needed, a sanitized workbook.
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Expected and actual behavior
+    validations:
+      required: true

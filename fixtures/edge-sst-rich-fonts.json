@@ -1,0 +1,55 @@
+{
+  "date1904": false,
+  "file": "edge-sst-rich-fonts.xlsx",
+  "worksheets": [
+    {
+      "actualColumnCount": 2,
+      "actualRowCount": 1,
+      "cells": [
+        {
+          "address": "A1",
+          "col": 1,
+          "row": 1,
+          "type": "RichText",
+          "value": {
+            "richText": [
+              {
+                "font": {
+                  "color": {
+                    "argb": "FFFF0000"
+                  },
+                  "name": "Arial",
+                  "size": 11
+                },
+                "text": "red"
+              },
+              {
+                "font": {
+                  "color": {
+                    "theme": 1
+                  }
+                },
+                "text": " themed"
+              }
+            ]
+          }
+        },
+        {
+          "address": "B1",
+          "col": 2,
+          "row": 1,
+          "type": "String",
+          "value": "spaced"
+        }
+      ],
+      "columnCount": 2,
+      "dimensions": "A1:B1",
+      "id": 1,
+      "merges": [],
+      "name": "Edge",
+      "orderNo": 0,
+      "rowCount": 1,
+      "state": "visible"
+    }
+  ]
+}

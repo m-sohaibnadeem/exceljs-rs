@@ -1,0 +1,48 @@
+{
+  "date1904": false,
+  "file": "booleans.xlsx",
+  "worksheets": [
+    {
+      "actualColumnCount": 2,
+      "actualRowCount": 2,
+      "cells": [
+        {
+          "address": "A1",
+          "col": 1,
+          "row": 1,
+          "type": "Boolean",
+          "value": true
+        },
+        {
+          "address": "B1",
+          "col": 2,
+          "row": 1,
+          "type": "String",
+          "value": "TRUE"
+        },
+        {
+          "address": "A2",
+          "col": 1,
+          "row": 2,
+          "type": "Boolean",
+          "value": false
+        },
+        {
+          "address": "B2",
+          "col": 2,
+          "row": 2,
+          "type": "Number",
+          "value": 1
+        }
+      ],
+      "columnCount": 2,
+      "dimensions": "A1:B2",
+      "id": 1,
+      "merges": [],
+      "name": "Booleans",
+      "orderNo": 0,
+      "rowCount": 2,
+      "state": "visible"
+    }
+  ]
+}

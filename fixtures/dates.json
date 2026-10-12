@@ -1,0 +1,209 @@
+{
+  "date1904": false,
+  "file": "dates.xlsx",
+  "worksheets": [
+    {
+      "actualColumnCount": 3,
+      "actualRowCount": 5,
+      "cells": [
+        {
+          "address": "A1",
+          "col": 1,
+          "row": 1,
+          "style": {
+            "border": {},
+            "fill": {
+              "pattern": "none",
+              "type": "pattern"
+            },
+            "font": {
+              "color": {
+                "theme": 1
+              },
+              "family": 2,
+              "name": "Calibri",
+              "scheme": "minor",
+              "size": 11
+            },
+            "numFmt": "mm-dd-yy"
+          },
+          "type": "Date",
+          "value": {
+            "date": "2024-02-29T00:00:00.000Z"
+          }
+        },
+        {
+          "address": "B1",
+          "col": 2,
+          "row": 1,
+          "style": {
+            "border": {},
+            "fill": {
+              "pattern": "none",
+              "type": "pattern"
+            },
+            "font": {
+              "color": {
+                "theme": 1
+              },
+              "family": 2,
+              "name": "Calibri",
+              "scheme": "minor",
+              "size": 11
+            },
+            "numFmt": "yyyy-mm-dd"
+          },
+          "type": "Date",
+          "value": {
+            "date": "2024-02-29T00:00:00.000Z"
+          }
+        },
+        {
+          "address": "C1",
+          "col": 3,
+          "row": 1,
+          "type": "Number",
+          "value": 45351
+        },
+        {
+          "address": "A2",
+          "col": 1,
+          "row": 2,
+          "style": {
+            "border": {},
+            "fill": {
+              "pattern": "none",
+              "type": "pattern"
+            },
+            "font": {
+              "color": {
+                "theme": 1
+              },
+              "family": 2,
+              "name": "Calibri",
+              "scheme": "minor",
+              "size": 11
+            },
+            "numFmt": "mm-dd-yy"
+          },
+          "type": "Date",
+          "value": {
+            "date": "1900-01-01T00:00:00.000Z"
+          }
+        },
+        {
+          "address": "B2",
+          "col": 2,
+          "row": 2,
+          "style": {
+            "border": {},
+            "fill": {
+              "pattern": "none",
+              "type": "pattern"
+            },
+            "font": {
+              "color": {
+                "theme": 1
+              },
+              "family": 2,
+              "name": "Calibri",
+              "scheme": "minor",
+              "size": 11
+            },
+            "numFmt": "hh:mm"
+          },
+          "type": "Date",
+          "value": {
+            "date": "2024-02-29T08:30:00.000Z"
+          }
+        },
+        {
+          "address": "A3",
+          "col": 1,
+          "row": 3,
+          "style": {
+            "border": {},
+            "fill": {
+              "pattern": "none",
+              "type": "pattern"
+            },
+            "font": {
+              "color": {
+                "theme": 1
+              },
+              "family": 2,
+              "name": "Calibri",
+              "scheme": "minor",
+              "size": 11
+            },
+            "numFmt": "mm-dd-yy"
+          },
+          "type": "Date",
+          "value": {
+            "date": "1900-03-01T00:00:00.000Z"
+          }
+        },
+        {
+          "address": "A4",
+          "col": 1,
+          "row": 4,
+          "style": {
+            "border": {},
+            "fill": {
+              "pattern": "none",
+              "type": "pattern"
+            },
+            "font": {
+              "color": {
+                "theme": 1
+              },
+              "family": 2,
+              "name": "Calibri",
+              "scheme": "minor",
+              "size": 11
+            },
+            "numFmt": "mm-dd-yy"
+          },
+          "type": "Date",
+          "value": {
+            "date": "2000-06-15T13:45:30.500Z"
+          }
+        },
+        {
+          "address": "A5",
+          "col": 1,
+          "row": 5,
+          "style": {
+            "border": {},
+            "fill": {
+              "pattern": "none",
+              "type": "pattern"
+            },
+            "font": {
+              "color": {
+                "theme": 1
+              },
+              "family": 2,
+              "name": "Calibri",
+              "scheme": "minor",
+              "size": 11
+            },
+            "numFmt": "mm-dd-yy"
+          },
+          "type": "Date",
+          "value": {
+            "date": "1999-12-31T23:59:59.000Z"
+          }
+        }
+      ],
+      "columnCount": 3,
+      "dimensions": "A1:C5",
+      "id": 1,
+      "merges": [],
+      "name": "Dates",
+      "orderNo": 0,
+      "rowCount": 5,
+      "state": "visible"
+    }
+  ]
+}

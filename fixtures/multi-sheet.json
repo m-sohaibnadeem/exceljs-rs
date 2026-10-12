@@ -1,0 +1,103 @@
+{
+  "date1904": false,
+  "file": "multi-sheet.xlsx",
+  "worksheets": [
+    {
+      "actualColumnCount": 1,
+      "actualRowCount": 1,
+      "cells": [
+        {
+          "address": "A1",
+          "col": 1,
+          "row": 1,
+          "type": "String",
+          "value": "first"
+        }
+      ],
+      "columnCount": 1,
+      "dimensions": "A1:A1",
+      "id": 1,
+      "merges": [],
+      "name": "First",
+      "orderNo": 0,
+      "rowCount": 1,
+      "state": "visible"
+    },
+    {
+      "actualColumnCount": 1,
+      "actualRowCount": 1,
+      "cells": [
+        {
+          "address": "B2",
+          "col": 2,
+          "row": 2,
+          "type": "Number",
+          "value": 2
+        }
+      ],
+      "columnCount": 2,
+      "dimensions": "B2:B2",
+      "id": 2,
+      "merges": [],
+      "name": "Second & <Third>",
+      "orderNo": 1,
+      "rowCount": 2,
+      "state": "visible"
+    },
+    {
+      "actualColumnCount": 1,
+      "actualRowCount": 1,
+      "cells": [
+        {
+          "address": "A1",
+          "col": 1,
+          "row": 1,
+          "type": "String",
+          "value": "hidden"
+        }
+      ],
+      "columnCount": 1,
+      "dimensions": "A1:A1",
+      "id": 3,
+      "merges": [],
+      "name": "Hidden",
+      "orderNo": 2,
+      "rowCount": 1,
+      "state": "hidden"
+    },
+    {
+      "actualColumnCount": 0,
+      "actualRowCount": 0,
+      "cells": [],
+      "columnCount": 0,
+      "dimensions": null,
+      "id": 4,
+      "merges": [],
+      "name": "Empty",
+      "orderNo": 3,
+      "rowCount": 0,
+      "state": "visible"
+    },
+    {
+      "actualColumnCount": 1,
+      "actualRowCount": 1,
+      "cells": [
+        {
+          "address": "C3",
+          "col": 3,
+          "row": 3,
+          "type": "Boolean",
+          "value": false
+        }
+      ],
+      "columnCount": 3,
+      "dimensions": "C3:C3",
+      "id": 5,
+      "merges": [],
+      "name": "Ünïcödé 名前",
+      "orderNo": 4,
+      "rowCount": 3,
+      "state": "visible"
+    }
+  ]
+}

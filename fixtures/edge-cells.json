@@ -1,0 +1,270 @@
+{
+  "date1904": false,
+  "file": "edge-cells.xlsx",
+  "worksheets": [
+    {
+      "actualColumnCount": 7,
+      "actualRowCount": 9,
+      "cells": [
+        {
+          "address": "A1",
+          "col": 1,
+          "row": 1,
+          "type": "String",
+          "value": "zero"
+        },
+        {
+          "address": "B1",
+          "col": 2,
+          "row": 1,
+          "type": "String",
+          "value": "Ab upper and j lower hex escapes"
+        },
+        {
+          "address": "C1",
+          "col": 3,
+          "row": 1,
+          "type": "String",
+          "value": "base"
+        },
+        {
+          "address": "D1",
+          "col": 4,
+          "row": 1,
+          "type": "RichText",
+          "value": {
+            "richText": [
+              {
+                "text": "run one "
+              },
+              {
+                "font": {
+                  "bold": true
+                },
+                "text": "run two"
+              }
+            ]
+          }
+        },
+        {
+          "address": "E1",
+          "col": 5,
+          "row": 1,
+          "type": "String",
+          "value": "cdata text"
+        },
+        {
+          "address": "F1",
+          "col": 6,
+          "row": 1,
+          "type": "String",
+          "value": "numeric A and B character references"
+        },
+        {
+          "address": "G1",
+          "col": 7,
+          "row": 1,
+          "type": "String",
+          "value": "Ab upper and j lower hex escapes"
+        },
+        {
+          "address": "A2",
+          "col": 1,
+          "row": 2,
+          "type": "Boolean",
+          "value": true
+        },
+        {
+          "address": "B2",
+          "col": 2,
+          "row": 2,
+          "type": "Boolean",
+          "value": false
+        },
+        {
+          "address": "C2",
+          "col": 3,
+          "row": 2,
+          "type": "Boolean",
+          "value": true
+        },
+        {
+          "address": "D2",
+          "col": 4,
+          "row": 2,
+          "type": "Boolean",
+          "value": true
+        },
+        {
+          "address": "E2",
+          "col": 5,
+          "row": 2,
+          "type": "Boolean",
+          "value": false
+        },
+        {
+          "address": "F2",
+          "col": 6,
+          "row": 2,
+          "type": "Boolean",
+          "value": false
+        },
+        {
+          "address": "A3",
+          "col": 1,
+          "row": 3,
+          "type": "Number",
+          "value": 12
+        },
+        {
+          "address": "B3",
+          "col": 2,
+          "row": 3,
+          "type": "Number",
+          "value": 1000
+        },
+        {
+          "address": "C3",
+          "col": 3,
+          "row": 3,
+          "type": "Number",
+          "value": 0.5
+        },
+        {
+          "address": "D3",
+          "col": 4,
+          "row": 3,
+          "type": "Number",
+          "value": {
+            "nonFinite": "NaN"
+          }
+        },
+        {
+          "address": "E3",
+          "col": 5,
+          "row": 3,
+          "type": "Number",
+          "value": {
+            "nonFinite": "-Infinity"
+          }
+        },
+        {
+          "address": "F3",
+          "col": 6,
+          "row": 3,
+          "type": "Number",
+          "value": 0
+        },
+        {
+          "address": "A4",
+          "col": 1,
+          "row": 4,
+          "type": "String",
+          "value": "inline plain"
+        },
+        {
+          "address": "B4",
+          "col": 2,
+          "row": 4,
+          "type": "RichText",
+          "value": {
+            "richText": [
+              {
+                "text": "inline "
+              },
+              {
+                "font": {
+                  "italic": true
+                },
+                "text": "rich"
+              }
+            ]
+          }
+        },
+        {
+          "address": "C4",
+          "col": 3,
+          "row": 4,
+          "type": "String",
+          "value": "A not decoded inline"
+        },
+        {
+          "address": "D4",
+          "col": 4,
+          "row": 4,
+          "type": "String",
+          "value": "str &amp; double decoded"
+        },
+        {
+          "address": "A5",
+          "col": 1,
+          "row": 5,
+          "type": "Number",
+          "value": 1
+        },
+        {
+          "address": "B5",
+          "col": 2,
+          "row": 5,
+          "type": "Number",
+          "value": 2
+        },
+        {
+          "address": "C5",
+          "col": 3,
+          "row": 5,
+          "type": "String",
+          "value": "zero"
+        },
+        {
+          "address": "B6",
+          "col": 2,
+          "row": 6,
+          "type": "Number",
+          "value": 6
+        },
+        {
+          "address": "A7",
+          "col": 1,
+          "row": 7,
+          "type": "Number",
+          "value": 2
+        },
+        {
+          "address": "A8",
+          "col": 1,
+          "row": 8,
+          "type": "Number",
+          "value": 8
+        },
+        {
+          "address": "A10",
+          "col": 1,
+          "row": 10,
+          "type": "Error",
+          "value": {
+            "error": "#REF!"
+          }
+        },
+        {
+          "address": "B10",
+          "col": 2,
+          "row": 10,
+          "type": "Formula",
+          "value": {
+            "formula": "1+1",
+            "result": 2
+          }
+        }
+      ],
+      "columnCount": 7,
+      "dimensions": "A1:G10",
+      "id": 1,
+      "merges": [],
+      "name": "Edge",
+      "orderNo": 0,
+      "rowCount": 10,
+      "state": "visible"
+    }
+  ]
+}
