@@ -5,6 +5,6 @@
 const fs = require('fs');
 const path = require('path');
 
-for (const file of ['README.md', 'LICENSE', 'LICENSE-EXCELJS', 'LICENSE-THIRD-PARTY', 'LICENSE-RUST-DEPENDENCIES']) {
+for (const file of ['README.md', 'CHANGELOG.md', 'LICENSE', 'LICENSE-EXCELJS', 'LICENSE-THIRD-PARTY', 'LICENSE-RUST-DEPENDENCIES']) {
   fs.copyFileSync(path.join(__dirname, '..', '..', '..', file), path.join(__dirname, '..', file));
 }

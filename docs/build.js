@@ -21,6 +21,7 @@ const NAV = [
   ['benchmarks.html', 'Benchmarks'],
   ['compatibility.html', 'Compatibility'],
   ['security.html', 'Security'],
+  ['changelog.html', 'Changelog'],
 ];
 
 function escapeHtml(s) {
@@ -156,6 +157,11 @@ function build() {
   fs.writeFileSync(path.join(OUT, 'security.html'), layout(
     'security.html', 'Security | exceljs-rs', 'Security reporting and safe handling of untrusted spreadsheet files.',
     `<main>\n${markdown(security)}\n</main>`
+  ));
+  const changelog = fs.readFileSync(path.join(DOCS, '..', 'CHANGELOG.md'), 'utf8');
+  fs.writeFileSync(path.join(OUT, 'changelog.html'), layout(
+    'changelog.html', 'Changelog | exceljs-rs', 'Release enhancements, fixes, and compatibility notes for exceljs-rs.',
+    `<main>\n${markdown(changelog)}\n</main>`
   ));
   console.log(`docs: built ${fs.readdirSync(OUT).length} files in ${path.relative(process.cwd(), OUT) || '.'}`);
 }

@@ -6,6 +6,8 @@
 <p class="lead">Read, write, and stream XLSX and CSV files with an ExcelJS-compatible API. Use familiar workbook objects, with parsing and compression handled by Rust.</p>
 <div class="cta"><span class="install">npm install exceljs-rs</span><a class="btn" href="guide.html">Get started</a><a class="btn secondary" href="api.html">API reference</a></div>
 </section>
+<h2>New in 0.2.0</h2>
+<p>Control large XLSX reads with optional resource limits, cancellation, and progress. Await bulk row exports with <code>writeRows</code> and consume native value batches with <code>readBatches</code>. Existing ExcelJS API defaults remain unchanged. See the <a href="changelog.html#0-2-0-2026-10-15">release notes</a> and <a href="guide.html">examples</a>.</p>
 <div class="features">
 <div class="feature"><h3>Workbook editing</h3><p>Work with worksheets, rows, cells, styles, merges, formulas, tables, and images.</p></div>
 <div class="feature"><h3>ExcelJS compatibility</h3><p>The API targets ExcelJS 4.4.0. Review <a href="compatibility.html">known differences</a> and run your application's tests when migrating.</p></div>
