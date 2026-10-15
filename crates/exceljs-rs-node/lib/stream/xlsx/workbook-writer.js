@@ -297,7 +297,13 @@ class WorkbookWriter {
   async commit() {
     if (this._bulkActive) throw new Error('A bulk export is still in progress');
     if (this._committing) return this._committing;
-    this._committing = this._commit();
+    this._committing = this._commit().catch(error => {
+      // A synchronous destination failure aborts native compression. Any
+      // already-scheduled part append may then report a closed archive;
+      // callers must still receive the original destination failure.
+      if (this._destinationFailed) throw this._destinationError;
+      throw error;
+    });
     return this._committing;
   }
 

@@ -414,8 +414,9 @@ test('destination lifecycle keeps early errors, finalization errors and prematur
   const caller = () => {};
   stream.on('error', caller);
   const writer = new ExcelJS.stream.xlsx.WorkbookWriter({stream});
-  writer._engine.checkpoint();
-  writer._flush();
+  // A destination can fail before commit irrespective of whether native
+  // constructor compression has already produced its first output chunk.
+  stream.emit('error', reason);
   await delay(10);
   await assert.rejects(writer.commit(), error => error === reason);
   assert.equal(stream.listeners('error').includes(caller), true);
@@ -428,12 +429,19 @@ test('destination lifecycle keeps early errors, finalization errors and prematur
     await exporting.writeRows(exporting.addWorksheet('S'), [[1]]);
     await assert.rejects(exporting.commit(), final === 'error' ? error => error === reason : /closed/);
   }
-  const throwing = new Writable({write(chunk, encoding, callback) { callback(); }});
-  throwing.write = () => { throw reason; };
-  const bad = new ExcelJS.stream.xlsx.WorkbookWriter({stream: throwing});
-  bad._engine.checkpoint();
-  bad._flush();
-  await assert.rejects(bad.commit(), error => error === reason);
+  for (const when of ['construction', 'commit']) {
+    const throwing = new Writable({write(chunk, encoding, callback) { callback(); }});
+    const write = throwing.write;
+    let enabled = when === 'construction';
+    throwing.write = function(...args) {
+      if (enabled) throw reason;
+      return write.apply(this, args);
+    };
+    const bad = new ExcelJS.stream.xlsx.WorkbookWriter({stream: throwing});
+    await bad.promise;
+    enabled = true;
+    await assert.rejects(bad.commit(), error => error === reason);
+  }
 });
 
 
