@@ -68,7 +68,30 @@ fn read_options(json: &str) -> Result<exceljs_rs::ReadOptions> {
                 .collect()
         })
         .unwrap_or_default();
+    let controlled = v
+        .get("_controlled")
+        .and_then(serde_json::Value::as_bool)
+        .unwrap_or(false);
+    let cancellable = v
+        .get("_cancellable")
+        .and_then(serde_json::Value::as_bool)
+        .unwrap_or(false);
+    let limits = v
+        .get("limits")
+        .map(|l| serde_json::from_value(l.clone()))
+        .transpose()
+        .map_err(to_napi)?
+        .unwrap_or_default();
     Ok(exceljs_rs::ReadOptions {
+        control: (controlled || cancellable).then(|| exceljs_rs::ReadControl::new(limits)),
+        preflight: v
+            .get("_controlled")
+            .and_then(serde_json::Value::as_bool)
+            .unwrap_or(false),
+        worksheet_order: v
+            .get("_batchOrder")
+            .and_then(serde_json::Value::as_bool)
+            .unwrap_or(false),
         max_rows: count("maxRows"),
         max_cols: count("maxCols"),
         ignore_nodes,
@@ -244,6 +267,21 @@ impl StreamWorkbook {
     }
 
     #[napi]
+    pub fn can_write_rows(&self, name: String) -> bool {
+        self.inner.can_write_rows(&name)
+    }
+
+    #[napi]
+    pub fn checkpoint(&mut self) -> Result<()> {
+        self.inner.checkpoint().map_err(engine_err)
+    }
+
+    #[napi]
+    pub fn abort(&mut self) -> Result<()> {
+        self.inner.abort().map_err(engine_err)
+    }
+
+    #[napi]
     pub fn finalize(&mut self) -> Result<()> {
         self.inner.finalize().map_err(engine_err)
     }
@@ -265,6 +303,8 @@ impl StreamWorkbook {
 #[napi]
 pub struct StreamReader {
     archive: exceljs_rs::StreamArchive,
+    control: std::sync::Arc<exceljs_rs::ReadControl>,
+    controlled: bool,
 }
 
 /// Parses one entry off the main thread.
@@ -273,6 +313,7 @@ pub struct EntryTask {
     index: usize,
     name: String,
     kind: String,
+    control: Option<std::sync::Arc<exceljs_rs::ReadControl>>,
 }
 
 impl Task for EntryTask {
@@ -280,6 +321,7 @@ impl Task for EntryTask {
     type JsValue = String;
 
     fn compute(&mut self) -> Result<Self::Output> {
+        let _scope = exceljs_rs::ControlScope::enter(self.control.clone());
         let bytes = self.archive.entry(self.index).map_err(engine_err)?;
         let name = self.name.as_str();
         let value = match self.kind.as_str() {
@@ -309,7 +351,7 @@ impl Task for EntryTask {
     }
 }
 
-type Batches = std::sync::mpsc::Receiver<std::result::Result<Vec<u8>, String>>;
+type Batches = Option<std::sync::mpsc::Receiver<std::result::Result<Vec<u8>, String>>>;
 
 /// Batches of worksheet events, parsed on a worker thread.
 #[napi]
@@ -327,11 +369,20 @@ impl Task for NextBatchTask {
     type JsValue = Option<Buffer>;
 
     fn compute(&mut self) -> Result<Self::Output> {
-        let rx = self.batches.lock().map_err(to_napi)?;
-        match rx.recv() {
-            Ok(Ok(batch)) => Ok(Some(batch)),
-            Ok(Err(message)) => Err(Error::from_reason(message)),
-            Err(_) => Ok(None),
+        loop {
+            {
+                let guard = self.batches.lock().map_err(to_napi)?;
+                let Some(rx) = guard.as_ref() else {
+                    return Ok(None);
+                };
+                match rx.try_recv() {
+                    Ok(Ok(batch)) => return Ok(Some(batch)),
+                    Ok(Err(message)) => return Err(Error::from_reason(message)),
+                    Err(std::sync::mpsc::TryRecvError::Disconnected) => return Ok(None),
+                    Err(std::sync::mpsc::TryRecvError::Empty) => {}
+                }
+            }
+            std::thread::sleep(std::time::Duration::from_millis(2));
         }
     }
 
@@ -342,6 +393,11 @@ impl Task for NextBatchTask {
 
 #[napi]
 impl SheetCursor {
+    #[napi]
+    pub fn close(&self) -> Result<()> {
+        self.batches.lock().map_err(to_napi)?.take();
+        Ok(())
+    }
     /// The next batch of events (binary, see `exceljs_rs::EVENT_ROW`), or
     /// null at the end.
     #[napi(ts_return_type = "Promise<Buffer | null>")]
@@ -355,10 +411,31 @@ impl SheetCursor {
 #[napi]
 impl StreamReader {
     #[napi(constructor)]
-    pub fn new(data: Buffer) -> Result<Self> {
+    pub fn new(data: Buffer, options: Option<String>) -> Result<Self> {
+        let options = read_options(options.as_deref().unwrap_or("{}"))?;
         Ok(StreamReader {
             archive: exceljs_rs::StreamArchive::new(data.to_vec()).map_err(engine_err)?,
+            control: options.control.unwrap_or_default(),
+            controlled: options.preflight,
         })
+    }
+
+    #[napi]
+    pub fn validate(&self) -> AsyncTask<ValidateTask> {
+        AsyncTask::new(ValidateTask {
+            archive: self.archive.clone(),
+            control: self.control.clone(),
+        })
+    }
+
+    #[napi]
+    pub fn close(&self) {
+        self.control.cancel();
+    }
+
+    #[napi]
+    pub fn progress(&self) -> String {
+        progress(&self.control)
     }
 
     /// Entry paths in archive order.
@@ -376,6 +453,7 @@ impl StreamReader {
             index: index as usize,
             name,
             kind,
+            control: self.controlled.then(|| self.control.clone()),
         })
     }
 
@@ -391,12 +469,14 @@ impl StreamReader {
     ) -> SheetCursor {
         let (tx, rx) = std::sync::mpsc::sync_channel(4);
         let mut archive = self.archive.clone();
+        let control = self.controlled.then(|| self.control.clone());
         let options = exceljs_rs::SheetReadOptions {
             emit_sheet,
             hyperlinks,
             batch_rows: (batch_rows as usize).max(1),
         };
         std::thread::spawn(move || {
+            let _scope = exceljs_rs::ControlScope::enter(control);
             let result = exceljs_rs::read_worksheet_events(
                 &name,
                 &mut archive,
@@ -409,13 +489,42 @@ impl StreamReader {
             }
         });
         SheetCursor {
-            batches: std::sync::Arc::new(std::sync::Mutex::new(rx)),
+            batches: std::sync::Arc::new(std::sync::Mutex::new(Some(rx))),
         }
     }
 }
 
 // ---------------------------------------------------------------------------
 // xlsx reading with rows in batches
+
+pub struct ValidateTask {
+    archive: exceljs_rs::StreamArchive,
+    control: std::sync::Arc<exceljs_rs::ReadControl>,
+}
+impl Task for ValidateTask {
+    type Output = ();
+    type JsValue = ();
+    fn compute(&mut self) -> Result<()> {
+        self.archive.validate(&self.control).map_err(engine_err)
+    }
+    fn resolve(&mut self, _env: Env, output: ()) -> Result<()> {
+        Ok(output)
+    }
+}
+
+fn progress(c: &exceljs_rs::ReadControl) -> String {
+    use std::sync::atomic::Ordering;
+    serde_json::json!({
+        "inflatedBytes": c.inflated_bytes.load(Ordering::Relaxed),
+        "entries": c.entries.load(Ordering::Relaxed),
+        "cells": c.cells.load(Ordering::Relaxed),
+        "sharedStrings": c.shared_strings.load(Ordering::Relaxed),
+        "validationCells": c.validation_cells.load(Ordering::Relaxed),
+        "mergeCells": c.merge_cells.load(Ordering::Relaxed),
+        "rows": c.rows.load(Ordering::Relaxed)
+    })
+    .to_string()
+}
 
 type ReadMsg = std::result::Result<exceljs_rs::ReadEvent, String>;
 type ReadRx = std::sync::Arc<std::sync::Mutex<Option<std::sync::mpsc::Receiver<ReadMsg>>>>;
@@ -436,18 +545,64 @@ pub struct ReadHead {
 #[napi]
 pub struct XlsxReader {
     rx: ReadRx,
+    control: std::sync::Arc<exceljs_rs::ReadControl>,
 }
 
 fn recv(rx: &ReadRx) -> Result<Option<exceljs_rs::ReadEvent>> {
-    let guard = rx.lock().map_err(to_napi)?;
-    let Some(rx) = guard.as_ref() else {
-        return Ok(None);
-    };
-    match rx.recv() {
-        Ok(Ok(event)) => Ok(Some(event)),
-        Ok(Err(message)) => Err(Error::from_reason(message)),
-        // the reader thread is done
-        Err(_) => Ok(None),
+    loop {
+        {
+            let guard = rx.lock().map_err(to_napi)?;
+            let Some(rx) = guard.as_ref() else {
+                return Ok(None);
+            };
+            match rx.try_recv() {
+                Ok(Ok(event)) => return Ok(Some(event)),
+                Ok(Err(message)) => return Err(Error::from_reason(message)),
+                Err(std::sync::mpsc::TryRecvError::Disconnected) => return Ok(None),
+                Err(std::sync::mpsc::TryRecvError::Empty) => {}
+            }
+        }
+        std::thread::sleep(std::time::Duration::from_millis(2));
+    }
+}
+
+pub struct RowsTask {
+    rx: ReadRx,
+}
+impl Task for RowsTask {
+    type Output = Option<Buffer>;
+    type JsValue = Option<Buffer>;
+    fn compute(&mut self) -> Result<Self::Output> {
+        next_rows(&self.rx)
+    }
+    fn resolve(&mut self, _env: Env, output: Self::Output) -> Result<Self::JsValue> {
+        Ok(output)
+    }
+}
+
+fn next_rows(rx: &ReadRx) -> Result<Option<Buffer>> {
+    match recv(rx)? {
+        Some(exceljs_rs::ReadEvent::Rows {
+            sheet,
+            refs,
+            count,
+            bytes,
+            last,
+        }) => {
+            let refs = serde_json::to_string(&refs).map_err(to_napi)?;
+            let mut out = Vec::with_capacity(bytes.len() + refs.len() + 13);
+            put_u32(&mut out, sheet);
+            out.push(u8::from(last));
+            put_u32(&mut out, refs.len());
+            out.extend_from_slice(refs.as_bytes());
+            put_u32(&mut out, count);
+            out.extend_from_slice(&bytes);
+            Ok(Some(out.into()))
+        }
+        Some(exceljs_rs::ReadEvent::Model { .. }) => {
+            Err(Error::from_reason("exceljs-rs: model read twice"))
+        }
+        None => Ok(None),
     }
 }
 
@@ -497,6 +652,8 @@ impl XlsxReader {
     #[napi(constructor)]
     pub fn new(data: Buffer, options: String) -> Result<Self> {
         let options = read_options(&options)?;
+        let control = options.control.clone().unwrap_or_default();
+        let worker_control = control.clone();
         // JS's buffer itself, not a copy (napi4 releases it on the JS
         // thread when the reader thread drops it).
         let (tx, rx) = std::sync::mpsc::sync_channel::<ReadMsg>(4);
@@ -509,10 +666,14 @@ impl XlsxReader {
                 if let Err(e) = result {
                     let _ = tx.send(Err(e.exceljs_message()));
                 }
+                worker_control
+                    .finished
+                    .store(true, std::sync::atomic::Ordering::Relaxed);
             })
             .map_err(to_napi)?;
         Ok(XlsxReader {
             rx: std::sync::Arc::new(std::sync::Mutex::new(Some(rx))),
+            control,
         })
     }
 
@@ -530,34 +691,33 @@ impl XlsxReader {
     /// Null at the end; throws the reader's error.
     #[napi]
     pub fn next_rows(&self) -> Result<Option<Buffer>> {
-        match recv(&self.rx)? {
-            Some(exceljs_rs::ReadEvent::Rows {
-                sheet,
-                refs,
-                count,
-                bytes,
-                last,
-            }) => {
-                let refs = serde_json::to_string(&refs).map_err(to_napi)?;
-                let mut out = Vec::with_capacity(bytes.len() + refs.len() + 13);
-                put_u32(&mut out, sheet);
-                out.push(u8::from(last));
-                put_u32(&mut out, refs.len());
-                out.extend_from_slice(refs.as_bytes());
-                put_u32(&mut out, count);
-                out.extend_from_slice(&bytes);
-                Ok(Some(out.into()))
-            }
-            Some(exceljs_rs::ReadEvent::Model { .. }) => {
-                Err(Error::from_reason("exceljs-rs: model read twice"))
-            }
-            None => Ok(None),
-        }
+        next_rows(&self.rx)
+    }
+
+    #[napi]
+    pub fn next_rows_async(&self) -> AsyncTask<RowsTask> {
+        AsyncTask::new(RowsTask {
+            rx: self.rx.clone(),
+        })
+    }
+
+    #[napi]
+    pub fn progress(&self) -> String {
+        progress(&self.control)
+    }
+
+    #[napi]
+    pub fn is_reading(&self) -> bool {
+        !self
+            .control
+            .finished
+            .load(std::sync::atomic::Ordering::Relaxed)
     }
 
     /// Stops reading (the rest is not needed).
     #[napi]
     pub fn close(&self) -> Result<()> {
+        self.control.cancel();
         self.rx.lock().map_err(to_napi)?.take();
         Ok(())
     }

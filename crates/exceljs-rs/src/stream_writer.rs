@@ -229,6 +229,31 @@ impl StreamWorkbook {
         self.sink.take()
     }
 
+    /// The additive bulk helper may only write the active archive entry.
+    pub fn can_write_rows(&self, name: &str) -> bool {
+        self.entries
+            .front()
+            .is_some_and(|e| !e.ended && e.name == name.trim_start_matches('/'))
+    }
+
+    pub fn checkpoint(&mut self) -> Result<()> {
+        self.pump()?;
+        self.zip
+            .as_mut()
+            .ok_or_else(|| invalid("archive already finalized".into()))?
+            .checkpoint()
+    }
+
+    /// Stop accepting data and release the compression worker immediately.
+    pub fn abort(&mut self) -> Result<()> {
+        self.entries.clear();
+        if let Some(zip) = self.zip.take() {
+            zip.finish()?;
+        }
+        self.sink.take();
+        Ok(())
+    }
+
     /// Gives `f` the archive bytes produced so far, without handing over the
     /// buffer (it is reused, so a long stream does not allocate one per
     /// flush).

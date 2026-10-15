@@ -623,10 +623,50 @@ class RowBatches {
   }
 }
 
+class AsyncRowBatches extends RowBatches {
+  constructor(reader, table, strings, controls) {
+    super(reader, table, strings);
+    this.controls = controls;
+  }
+
+  async nextAsync() {
+    if (this.pending) {
+      const batch = this.pending;
+      this.pending = null;
+      return batch;
+    }
+    const buf = await this.controls.wait(this.reader.nextRowsAsync());
+    if (!buf) return null;
+    const rows = new RowsReader(buf, this.table, this.strings);
+    const sheet = rows.u32();
+    const last = buf[rows.pos++] === 1;
+    codec.addRefs(rows.str(), this.table);
+    const count = rows.u32();
+    return {sheet, last, count, rows};
+  }
+
+  source(i) {
+    return {
+      loadIntoAsync: async worksheet => {
+        worksheet._rows = [];
+        for (;;) {
+          const batch = await this.nextAsync();
+          if (!batch) return;
+          if (batch.sheet < i) continue;
+          if (batch.sheet > i) { this.pending = batch; return; }
+          for (let k = 0; k < batch.count; k++) batch.rows.loadRow(worksheet);
+          this.controls.notify('rows');
+          if (batch.last) return;
+        }
+      },
+    };
+  }
+}
+
 // Decodes every worksheet's rows into arrays.
 function decodeSheets(buf, table) {
   const reader = new RowsReader(buf, table);
   return reader.sheets.map((_, s) => reader.rows(s));
 }
 
-module.exports = {decodeSheets, encodeWorkbook, readStrings, RowBatch, RowBatches, RowsReader, StyleTable};
+module.exports = {decodeSheets, encodeWorkbook, readStrings, RowBatch, RowBatches, AsyncRowBatches, RowsReader, StyleTable};

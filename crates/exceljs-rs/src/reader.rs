@@ -10,7 +10,7 @@
 //! the sharing (`crates/exceljs-rs-node/lib/xlsx/codec.js`).
 
 use std::collections::HashMap;
-use std::io::{Cursor, Read};
+use std::io::Cursor;
 
 use serde_json::{json, Map, Value};
 use zip::ZipArchive;
@@ -38,6 +38,12 @@ const REL_VML: &str =
 /// Options of `workbook.xlsx.load(data, options)` used by the reader.
 #[derive(Debug, Clone, Default)]
 pub struct ReadOptions {
+    /// Optional archive budgets and cancellation, shared with the owner.
+    pub control: Option<std::sync::Arc<crate::ReadControl>>,
+    /// Scan all entries once before parsing (opt-in overhead).
+    pub preflight: bool,
+    /// Batch import follows workbook sheet order rather than ZIP entry order.
+    pub worksheet_order: bool,
     /// `maxRows`: more rows than this is an error.
     pub max_rows: Option<usize>,
     /// `maxCols`: more cells in a row than this is an error.
@@ -260,6 +266,7 @@ fn entries(data: &[u8]) -> Result<Vec<(usize, String)>> {
     let mut zip = ZipArchive::new(Cursor::new(data))?;
     let mut out: Vec<(usize, String)> = Vec::with_capacity(zip.len());
     for i in 0..zip.len() {
+        crate::read_control::check()?;
         let entry = zip.by_index_raw(i)?;
         if entry.is_dir() {
             continue;
@@ -277,9 +284,7 @@ fn entries(data: &[u8]) -> Result<Vec<(usize, String)>> {
 
 /// The content of entry `index`.
 fn entry_bytes(zip: &mut ZipArchive<Cursor<&[u8]>>, index: usize) -> Result<Vec<u8>> {
-    let mut bytes = Vec::new();
-    zip.by_index(index)?.read_to_end(&mut bytes)?;
-    Ok(bytes)
+    crate::read_control::read_all(zip.by_index(index)?)
 }
 
 /// `entry.async('string')`: UTF-8 with replacement characters; and whether
@@ -465,6 +470,12 @@ pub fn read_events(
     options: &ReadOptions,
     emit: &mut dyn FnMut(ReadEvent) -> bool,
 ) -> Result<()> {
+    let _scope = crate::ControlScope::enter(options.control.clone());
+    if options.preflight {
+        if let Some(control) = &options.control {
+            control.preflight(data)?;
+        }
+    }
     let sheet_options = SheetOptions {
         max_rows: options.max_rows,
         max_cols: options.max_cols,
@@ -571,6 +582,7 @@ pub fn read_events(
                     } else {
                         None
                     };
+                    crate::read_control::check()?;
                     let parsed = match &fast {
                         Some(f) => parse_part(&mut xform, &name, &f.rest),
                         None => parse_part(&mut xform, &name, &bytes),
@@ -812,6 +824,24 @@ pub fn read_events(
             .map_err(part_error(&part))?;
         row_jobs.push((part, source, row_ctx));
     }
+    if options.worksheet_order {
+        let order = sheets.as_ref().and_then(Value::as_array);
+        let mut jobs: Vec<_> = worksheets.into_iter().zip(row_jobs).collect();
+        // Unreferenced worksheet parts are not workbook worksheets. The
+        // document importer historically ignores them when attaching rows.
+        jobs.retain(|(ws, _)| {
+            order.is_some_and(|list| {
+                ws.get("id")
+                    .is_some_and(|id| list.iter().any(|s| s.get("id") == Some(id)))
+            })
+        });
+        jobs.sort_by_key(|(ws, _)| {
+            order
+                .and_then(|list| list.iter().position(|s| s.get("id") == ws.get("id")))
+                .unwrap_or(usize::MAX)
+        });
+        (worksheets, row_jobs) = jobs.into_iter().unzip();
+    }
     let mut model = Map::new();
     model.insert("worksheets".into(), Value::Array(worksheets));
     model.insert("themes".into(), Value::Object(themes));
@@ -859,6 +889,8 @@ pub fn read_events(
         let mut formulae: HashMap<String, Value> = HashMap::new();
         let mut each =
             |row: &mut RowModel, refs: &mut Refs, styles: &mut StyleRefs<'_>| -> R<bool> {
+                crate::read_control::check().map_err(|e| e.exceljs_message())?;
+                crate::read_control::row();
                 reconcile_row(row, &row_ctx, &ctx, styles, refs, &mut formulae)?;
                 crate::rows::encode_row(&mut batch, row);
                 count += 1;

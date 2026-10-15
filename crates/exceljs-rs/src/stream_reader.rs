@@ -9,7 +9,7 @@
 //! keeps only the last `<t>` of a string). Worksheets are parsed into batches
 //! of events: `["cols", [...]]`, `["row", {...}]` and `["hyperlink", {...}]`.
 
-use std::io::{Cursor, Read};
+use std::io::Cursor;
 use std::sync::Arc;
 
 use serde_json::{json, Map, Value};
@@ -37,14 +37,22 @@ impl AsRef<[u8]> for Bytes {
 #[derive(Debug, Clone)]
 pub struct StreamArchive {
     zip: ZipArchive<Cursor<Bytes>>,
+    bytes: Bytes,
 }
 
 impl StreamArchive {
     /// Opens the archive.
     pub fn new(data: Vec<u8>) -> Result<Self> {
+        let bytes = Bytes(Arc::new(data));
         Ok(StreamArchive {
-            zip: ZipArchive::new(Cursor::new(Bytes(Arc::new(data))))?,
+            zip: ZipArchive::new(Cursor::new(bytes.clone()))?,
+            bytes,
         })
+    }
+
+    /// Validate budgets without retaining inflated entries.
+    pub fn validate(&self, control: &crate::ReadControl) -> Result<()> {
+        control.preflight(self.bytes.as_ref())
     }
 
     /// Entry paths in archive order (directories included, as unzipper
@@ -60,10 +68,7 @@ impl StreamArchive {
 
     /// The uncompressed content of entry `index`.
     pub fn entry(&mut self, index: usize) -> Result<Vec<u8>> {
-        let mut e = self.zip.by_index(index)?;
-        let mut bytes = Vec::new();
-        e.read_to_end(&mut bytes)?;
-        Ok(bytes)
+        crate::read_control::read_all(self.zip.by_index(index)?)
     }
 }
 
@@ -448,6 +453,7 @@ pub fn read_worksheet_events(
                                 None => batch.out.push(EVENT_NULL_ROW),
                             }
                             rows_in_batch += 1;
+                            crate::read_control::row();
                         }
                         "rPh" | "phoneticPr" if skip > 0 => skip -= 1,
                         "c" => {

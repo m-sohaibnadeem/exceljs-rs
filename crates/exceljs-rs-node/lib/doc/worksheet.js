@@ -612,15 +612,9 @@ class Worksheet {
   }
 
   _mergeCellsInternal(dimensions, ignoreStyle) {
-    // check cells aren't already merged
-    _.each(this._merges, merge => {
-      if (merge.intersects(dimensions)) {
-        throw new Error('Cannot merge already merged cells');
-      }
-    });
+    const master = this._startMerge(dimensions);
 
     // apply merge
-    const master = this.getCell(dimensions.top, dimensions.left);
     for (let i = dimensions.top; i <= dimensions.bottom; i++) {
       for (let j = dimensions.left; j <= dimensions.right; j++) {
         // merge all but the master cell
@@ -632,6 +626,17 @@ class Worksheet {
 
     // index merge
     this._merges[master.address] = dimensions;
+  }
+
+  _startMerge(dimensions) {
+    // check cells aren't already merged
+    _.each(this._merges, merge => {
+      if (merge.intersects(dimensions)) {
+        throw new Error('Cannot merge already merged cells');
+      }
+    });
+
+    return this.getCell(dimensions.top, dimensions.left);
   }
 
   _unMergeMaster(master) {
@@ -932,8 +937,36 @@ class Worksheet {
     this.name = value.name;
     this._columns = Column.fromModel(this, value.cols);
     this._parseRows(value);
+    this._setModelAfterRows(value);
+  }
 
-    this._parseMergeCells(value);
+  async _loadModelAsync(value, controls) {
+    this.name = value.name;
+    this._columns = Column.fromModel(this, value.cols);
+    await value.rows.loadIntoAsync(this);
+    let cells = 0;
+    for (const merge of value.mergeCells || []) {
+      controls.check();
+      const dimensions = new Range([merge]);
+      const master = this._startMerge(dimensions);
+      for (let row = dimensions.top; row <= dimensions.bottom; row++) {
+        for (let col = dimensions.left; col <= dimensions.right; col++) {
+          if (row !== dimensions.top || col !== dimensions.left) this.getCell(row, col).merge(master, true);
+          if (++cells % 1024 === 0) {
+            controls.notify('merges');
+            await controls.wait(new Promise(resolve => setImmediate(resolve)));
+          }
+        }
+      }
+      this._merges[master.address] = dimensions;
+    }
+    controls.check();
+    this._setModelAfterRows(value, true);
+  }
+
+  _setModelAfterRows(value, mergesLoaded = false) {
+
+    if (!mergesLoaded) this._parseMergeCells(value);
     this.dataValidations = new DataValidations(value.dataValidations);
     this.properties = value.properties;
     this.pageSetup = value.pageSetup;

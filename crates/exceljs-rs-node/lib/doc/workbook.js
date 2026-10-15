@@ -195,6 +195,22 @@ class Workbook {
   }
 
   set model(value) {
+    this._setModelHeader(value);
+    value.worksheets.forEach(worksheetModel => {
+      this._createModelWorksheet(value, worksheetModel).model = worksheetModel;
+    });
+    this._setModelFooter(value);
+  }
+
+  async _loadModelAsync(value, controls) {
+    this._setModelHeader(value);
+    for (const worksheetModel of value.worksheets) {
+      await this._createModelWorksheet(value, worksheetModel)._loadModelAsync(worksheetModel, controls);
+    }
+    this._setModelFooter(value);
+  }
+
+  _setModelHeader(value) {
     this.creator = value.creator;
     this.lastModifiedBy = value.lastModifiedBy;
     this.lastPrinted = value.lastPrinted;
@@ -214,19 +230,22 @@ class Workbook {
     this.properties = value.properties;
     this.calcProperties = value.calcProperties;
     this._worksheets = [];
-    value.worksheets.forEach(worksheetModel => {
-      const {id, name, state} = worksheetModel;
-      const orderNo = value.sheets && value.sheets.findIndex(ws => ws.id === id);
-      const worksheet = (this._worksheets[id] = new Worksheet({
-        id,
-        name,
-        orderNo,
-        state,
-        workbook: this,
-      }));
-      worksheet.model = worksheetModel;
-    });
+  }
 
+  _createModelWorksheet(value, worksheetModel) {
+    const {id, name, state} = worksheetModel;
+    const orderNo = value.sheets && value.sheets.findIndex(ws => ws.id === id);
+    const worksheet = (this._worksheets[id] = new Worksheet({
+      id,
+      name,
+      orderNo,
+      state,
+      workbook: this,
+    }));
+    return worksheet;
+  }
+
+  _setModelFooter(value) {
     this._definedNames.model = value.definedNames;
     this.views = value.views;
     this._themes = value.themes;

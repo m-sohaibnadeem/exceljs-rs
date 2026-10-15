@@ -115,11 +115,24 @@ function decodeStreamed({refs, model, strings}, reader) {
   return result;
 }
 
+function decodeAsync(head, reader, controls) {
+  const table = [];
+  addRefs(head.refs, table);
+  const model = parse(head.model, table);
+  const {AsyncRowBatches, readStrings} = require('./rows');
+  const batches = new AsyncRowBatches(reader, table, readStrings(head.strings), controls);
+  (model.worksheets || []).forEach((ws, i) => {
+    if (ws) ws.rows = batches.source(i);
+  });
+  return model;
+}
+
 module.exports = {
   encode: model => JSON.stringify(model, encodeReplacer),
   decode: json => parse(json),
   addRefs,
   decodeRead,
   decodeStreamed,
+  decodeAsync,
   parseWithRefs: parse,
 };

@@ -9,6 +9,7 @@ const ExcelJS = {
     xlsx: {
       WorkbookWriter: require('./stream/xlsx/workbook-writer'),
       WorkbookReader: require('./stream/xlsx/workbook-reader'),
+      readBatches: require('./stream/xlsx/read-batches'),
     },
   },
 };

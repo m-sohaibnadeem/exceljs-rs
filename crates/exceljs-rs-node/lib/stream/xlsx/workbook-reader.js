@@ -11,6 +11,7 @@ const nodeStream = require('stream');
 
 const native = require('../../native');
 const codec = require('../../xlsx/codec');
+const {ReadControls, readInput} = require('../../xlsx/read-controls');
 
 const WorksheetReader = require('./worksheet-reader');
 const HyperlinkReader = require('./hyperlink-reader');
@@ -104,59 +105,75 @@ class WorkbookReader extends EventEmitter {
 
   async *parse(input, options) {
     if (options) this.options = options;
-    const stream = (this.stream = this._getStream(input || this.input));
-    const archive = new native.StreamReader(await readAll(stream));
-    this._archive = archive;
+    const controls = new ReadControls(this.options);
+    this._controls = controls;
+    const source = input || this.input;
+    let stream;
+    try {
+      const buffer = controls.enabled ? await readInput(source, controls) : await readAll(stream = (this.stream = this._getStream(source)));
+      const archive = new native.StreamReader(buffer, codec.encode(controls.nativeOptions()));
+      controls.attach(archive);
+      if (controls.enabled) await controls.wait(archive.validate());
+      this._archive = archive;
 
-    // worksheets, deferred for parsing after shared strings reading
-    const waitingWorkSheets = [];
+      // worksheets, deferred for parsing after shared strings reading
+      const waitingWorkSheets = [];
 
-    const names = archive.entryNames();
-    for (let index = 0; index < names.length; index++) {
-      const path = names[index];
-      const entry = {index, path};
-      let match;
-      let sheetNo;
-      switch (path) {
-        case '_rels/.rels':
-          break;
-        case 'xl/_rels/workbook.xml.rels':
-          await this._parseRels(entry);
-          break;
-        case 'xl/workbook.xml':
-          await this._parseWorkbook(entry);
-          break;
-        case 'xl/sharedStrings.xml':
-          yield* this._parseSharedStrings(entry);
-          break;
-        case 'xl/styles.xml':
-          await this._parseStyles(entry);
-          break;
-        default:
-          if (path.match(/xl\/worksheets\/sheet\d+[.]xml/)) {
-            match = path.match(/xl\/worksheets\/sheet(\d+)[.]xml/);
-            sheetNo = match[1];
-            if (this.sharedStrings && this.workbookRels) {
-              yield* this._parseWorksheet(entry, sheetNo);
-            } else {
-              waitingWorkSheets.push({sheetNo, entry});
+      const names = archive.entryNames();
+      for (let index = 0; index < names.length; index++) {
+        const path = names[index];
+        const entry = {index, path};
+        let match;
+        let sheetNo;
+        switch (path) {
+          case '_rels/.rels':
+            break;
+          case 'xl/_rels/workbook.xml.rels':
+            await this._parseRels(entry);
+            break;
+          case 'xl/workbook.xml':
+            await this._parseWorkbook(entry);
+            break;
+          case 'xl/sharedStrings.xml':
+            yield* this._parseSharedStrings(entry);
+            break;
+          case 'xl/styles.xml':
+            await this._parseStyles(entry);
+            break;
+          default:
+            if (path.match(/xl\/worksheets\/sheet\d+[.]xml/)) {
+              match = path.match(/xl\/worksheets\/sheet(\d+)[.]xml/);
+              sheetNo = match[1];
+              if (this.sharedStrings && this.workbookRels) {
+                yield* this._parseWorksheet(entry, sheetNo);
+              } else {
+                waitingWorkSheets.push({sheetNo, entry});
+              }
+            } else if (path.match(/xl\/worksheets\/_rels\/sheet\d+[.]xml.rels/)) {
+              match = path.match(/xl\/worksheets\/_rels\/sheet(\d+)[.]xml.rels/);
+              sheetNo = match[1];
+              yield* this._parseHyperlinks(entry, sheetNo);
             }
-          } else if (path.match(/xl\/worksheets\/_rels\/sheet\d+[.]xml.rels/)) {
-            match = path.match(/xl\/worksheets\/_rels\/sheet(\d+)[.]xml.rels/);
-            sheetNo = match[1];
-            yield* this._parseHyperlinks(entry, sheetNo);
-          }
-          break;
+            break;
+        }
       }
-    }
 
-    for (const {sheetNo, entry} of waitingWorkSheets) {
-      yield* this._parseWorksheet(entry, sheetNo);
+      for (const {sheetNo, entry} of waitingWorkSheets) {
+        yield* this._parseWorksheet(entry, sheetNo);
+      }
+      if (controls.enabled) controls.finish();
+    } finally {
+      // Legacy readers keep their archive for worksheet objects consumed
+      // after outer iteration. Controlled readers scope it to this parse.
+      if (!controls.enabled) controls.native = null;
+      controls.close();
+      if (controls.enabled) this._archive = null;
+      if (stream && typeof source === 'string') stream.destroy();
     }
   }
 
   _readEntry(entry, kind) {
-    return this._archive.readEntry(entry.index, entry.path, kind);
+    return this._controls.wait(this._archive.readEntry(entry.index, entry.path, kind));
   }
 
   _emitEntry(payload) {
