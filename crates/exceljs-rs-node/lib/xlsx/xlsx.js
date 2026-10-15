@@ -9,6 +9,7 @@ const fs = require('fs');
 const native = require('../native');
 const codec = require('./codec');
 const {encodeWorkbook} = require('./rows');
+const {ReadControls, readInput} = require('./read-controls');
 
 // The input types JSZip.loadAsync accepts, with JSZip's error otherwise.
 function toBuffer(data) {
@@ -28,33 +29,51 @@ class XLSX {
   }
 
   async readFile(filename, options) {
-    if (!(await fs.promises.access(filename).then(() => true, () => false))) {
-      throw new Error(`File not found: ${filename}`);
-    }
-    return this.load(await fs.promises.readFile(filename), options);
+    const controls = new ReadControls(options);
+    try {
+      if (!(await controls.wait(fs.promises.access(filename).then(() => true, () => false)))) {
+        throw new Error(`File not found: ${filename}`);
+      }
+      const buffer = controls.enabled ? await readInput(filename, controls) : await fs.promises.readFile(filename);
+      return await this._loadBuffer(buffer, controls);
+    } finally { controls.close(); }
   }
 
   async read(stream, options) {
-    const chunks = [];
-    for await (const chunk of stream) {
-      chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
-    }
-    return this.load(Buffer.concat(chunks), options);
+    const controls = new ReadControls(options);
+    try {
+      let buffer;
+      if (controls.enabled) buffer = await readInput(stream, controls);
+      else {
+        const chunks = [];
+        for await (const chunk of stream) chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+        buffer = Buffer.concat(chunks);
+      }
+      return await this._loadBuffer(buffer, controls);
+    } finally { controls.close(); }
   }
 
   async load(data, options) {
-    let buffer;
-    if (options && options.base64) {
-      buffer = Buffer.from(data.toString(), 'base64');
-    } else {
-      buffer = toBuffer(await data);
-    }
+    const controls = new ReadControls(options);
+    try {
+      const resolved = await controls.wait(Promise.resolve(data));
+      const buffer = options && options.base64 ? Buffer.from(resolved.toString(), 'base64') : toBuffer(resolved);
+      if (controls.enabled) controls.input(buffer.length);
+      return await this._loadBuffer(buffer, controls);
+    } finally { controls.close(); }
+  }
+
+  async _loadBuffer(buffer, controls) {
     // The engine reads on a thread of its own and sends the rows in
     // batches, which become Rows and Cells while it reads the next ones.
-    const reader = new native.XlsxReader(buffer, codec.encode(options || {}));
+    const reader = new native.XlsxReader(buffer, codec.encode(controls.nativeOptions()));
+    controls.attach(reader);
     try {
-      const head = await reader.model();
-      this.workbook.model = codec.decodeStreamed(head, reader);
+      const head = await controls.wait(reader.model());
+      if (controls.enabled) {
+        await this.workbook._loadModelAsync(codec.decodeAsync(head, reader, controls), controls);
+        controls.finish();
+      } else this.workbook.model = codec.decodeStreamed(head, reader);
     } finally {
       reader.close();
     }

@@ -671,7 +671,11 @@ pub(crate) fn fast_rows(
     each: &mut dyn FnMut(RowModel) -> XResult<()>,
 ) -> Option<XResult<()>> {
     let text = std::str::from_utf8(doc).ok()?;
-    Scanner::new(text, rows_at).rows(Some(each))
+    let result = Scanner::new(text, rows_at).rows(Some(each));
+    if let Err(e) = crate::read_control::check() {
+        return Some(Err(e.exceljs_message()));
+    }
+    result
 }
 
 /// [`fast_rows`] over the part as `input` gives it (the entry inflated
@@ -689,6 +693,9 @@ pub(crate) fn fast_rows_stream(
     let mut eof = false;
     let mut chunk = vec![0u8; 1 << 16];
     loop {
+        if let Err(e) = crate::read_control::check() {
+            return Some(Err(e.exceljs_message()));
+        }
         let n = input.read(&mut chunk).ok()?;
         if n == 0 {
             eof = true;
@@ -699,11 +706,13 @@ pub(crate) fn fast_rows_stream(
             skip -= s;
             got = got.get(s..)?;
         }
+        let search_at = buf.len().saturating_sub("</sheetData>".len());
         buf.extend_from_slice(got);
         // the end of the last complete row, or the end of <sheetData>
-        let end = find_last(&buf, b"</sheetData>")
-            .map(|i| i + "</sheetData>".len())
-            .or_else(|| find_last(&buf, b"</row>").map(|i| i + "</row>".len()));
+        let search = buf.get(search_at..)?;
+        let end = find_last(search, b"</sheetData>")
+            .map(|i| search_at + i + "</sheetData>".len())
+            .or_else(|| find_last(search, b"</row>").map(|i| search_at + i + "</row>".len()));
         let Some(cut) = end else {
             if eof {
                 return None;
@@ -712,7 +721,11 @@ pub(crate) fn fast_rows_stream(
         };
         let window = std::str::from_utf8(buf.get(..cut)?).ok()?;
         let mut sc = Scanner::new(window, 0);
-        match sc.rows_in_window(each)? {
+        let result = sc.rows_in_window(each);
+        if let Err(e) = crate::read_control::check() {
+            return Some(Err(e.exceljs_message()));
+        }
+        match result? {
             Ok(true) => return Some(Ok(())),
             Ok(false) => {}
             Err(e) => return Some(Err(e)),
@@ -736,6 +749,8 @@ struct Scanner<'a> {
     b: &'a [u8],
     pos: usize,
     attrs: Vec<(&'a str, &'a str)>,
+    control: Option<std::sync::Arc<crate::read_control::ReadControl>>,
+    checked_at: usize,
 }
 
 impl<'a> Scanner<'a> {
@@ -745,6 +760,8 @@ impl<'a> Scanner<'a> {
             b: s.as_bytes(),
             pos,
             attrs: Vec::new(),
+            control: crate::read_control::active(),
+            checked_at: pos,
         }
     }
 
@@ -755,7 +772,8 @@ impl<'a> Scanner<'a> {
         mut each: Option<&mut dyn FnMut(RowModel) -> XResult<()>>,
     ) -> Option<XResult<()>> {
         loop {
-            self.skip_ws();
+            self.checkpoint()?;
+            self.skip_ws()?;
             if self.eat("</sheetData>") {
                 return Some(Ok(()));
             }
@@ -766,7 +784,8 @@ impl<'a> Scanner<'a> {
             let mut row = each.as_ref().map(|_| open_row(|n| self.attr(n)));
             if !closed {
                 loop {
-                    self.skip_ws();
+                    self.checkpoint()?;
+                    self.skip_ws()?;
                     if self.eat("</row>") {
                         break;
                     }
@@ -794,7 +813,8 @@ impl<'a> Scanner<'a> {
         each: &mut dyn FnMut(RowModel) -> XResult<()>,
     ) -> Option<XResult<bool>> {
         loop {
-            self.skip_ws();
+            self.checkpoint()?;
+            self.skip_ws()?;
             if self.pos >= self.b.len() {
                 return Some(Ok(false));
             }
@@ -808,7 +828,8 @@ impl<'a> Scanner<'a> {
             let mut row = open_row(|n| self.attr(n));
             if !closed {
                 loop {
-                    self.skip_ws();
+                    self.checkpoint()?;
+                    self.skip_ws()?;
                     if self.eat("</row>") {
                         break;
                     }
@@ -852,10 +873,24 @@ impl<'a> Scanner<'a> {
         false
     }
 
-    fn skip_ws(&mut self) {
+    // The default scanner retains its byte loop. A controlled scan checks
+    // cancellation at most every 8 KiB, including one very long XML token.
+    fn checkpoint(&mut self) -> Option<()> {
+        if self.pos.saturating_sub(self.checked_at) >= 8192 {
+            if let Some(control) = &self.control {
+                control.check().ok()?;
+            }
+            self.checked_at = self.pos;
+        }
+        Some(())
+    }
+
+    fn skip_ws(&mut self) -> Option<()> {
         while matches!(self.b.get(self.pos), Some(b' ' | b'\t' | b'\n' | b'\r')) {
             self.pos += 1;
+            self.checkpoint()?;
         }
+        Some(())
     }
 
     fn attr(&self, name: &str) -> Option<&'a str> {
@@ -866,7 +901,7 @@ impl<'a> Scanner<'a> {
     fn attributes(&mut self) -> Option<bool> {
         self.attrs.clear();
         loop {
-            self.skip_ws();
+            self.skip_ws()?;
             if self.eat(">") {
                 return Some(false);
             }
@@ -878,16 +913,17 @@ impl<'a> Scanner<'a> {
                 c.is_ascii_alphanumeric() || matches!(c, b':' | b'_' | b'-' | b'.')
             }) {
                 self.pos += 1;
+                self.checkpoint()?;
             }
             let name = self.s.get(start..self.pos)?;
             if name.is_empty() || !self.b.get(start)?.is_ascii_alphabetic() {
                 return None;
             }
-            self.skip_ws();
+            self.skip_ws()?;
             if !self.eat("=") {
                 return None;
             }
-            self.skip_ws();
+            self.skip_ws()?;
             let quote = *self.b.get(self.pos)?;
             if quote != b'"' && quote != b'\'' {
                 return None;
@@ -900,7 +936,10 @@ impl<'a> Scanner<'a> {
                     // references and whitespace that attribute-value
                     // normalisation would change
                     b'&' | b'<' | b'\t' | b'\n' | b'\r' => return None,
-                    _ => self.pos += 1,
+                    _ => {
+                        self.pos += 1;
+                        self.checkpoint()?;
+                    }
                 }
             }
             let value = self.s.get(vstart..self.pos)?;
@@ -919,7 +958,10 @@ impl<'a> Scanner<'a> {
             match *self.b.get(self.pos)? {
                 b'<' => break,
                 b'&' | b'\r' => return None,
-                _ => self.pos += 1,
+                _ => {
+                    self.pos += 1;
+                    self.checkpoint()?;
+                }
             }
         }
         self.s.get(start..self.pos)
@@ -934,7 +976,7 @@ impl<'a> Scanner<'a> {
         let mut seen_value = false;
         let mut value = None;
         if !closed {
-            self.skip_ws();
+            self.skip_ws()?;
             if self.eat_tag("f") {
                 let closed = self.attributes()?;
                 if let Some(m) = m.as_mut() {
@@ -949,7 +991,7 @@ impl<'a> Scanner<'a> {
                         return None;
                     }
                 }
-                self.skip_ws();
+                self.skip_ws()?;
             }
             if self.eat_tag("v") {
                 seen_value = true;
@@ -962,7 +1004,7 @@ impl<'a> Scanner<'a> {
                         return None;
                     }
                 }
-                self.skip_ws();
+                self.skip_ws()?;
             }
             if !self.eat("</c>") {
                 return None;
@@ -990,6 +1032,47 @@ mod tests {
         )
         .unwrap();
         rows.take().first().map(crate::rows::row_value).unwrap()
+    }
+
+    #[test]
+    fn cancelled_fast_metadata_scan_stops_inside_a_long_token() {
+        let doc = format!(
+            "<worksheet><sheetData><row><c><v>{}</v></c></row></sheetData></worksheet>",
+            "1".repeat(100_000)
+        );
+        let control = crate::ReadControl::new(crate::ReadLimits::default());
+        let _scope = crate::read_control::ControlScope::enter(Some(control.clone()));
+        control.cancel();
+        let mut scanner = Scanner::new(&doc, "<worksheet><sheetData>".len());
+        assert!(scanner.rows(None).is_none());
+        assert!(scanner.pos < 20_000);
+        assert!(fast_sheet_data(doc.as_bytes()).is_none());
+    }
+
+    #[test]
+    fn cancelled_fast_stream_stops_an_unfinished_long_row() {
+        struct CancellingInput {
+            control: std::sync::Arc<crate::ReadControl>,
+            reads: usize,
+        }
+        impl std::io::Read for CancellingInput {
+            fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+                self.reads += 1;
+                if self.reads == 2 {
+                    self.control.cancel();
+                }
+                buf.fill(b'1');
+                Ok(buf.len())
+            }
+        }
+        let control = crate::ReadControl::new(crate::ReadLimits::default());
+        let _scope = crate::read_control::ControlScope::enter(Some(control.clone()));
+        let mut input = CancellingInput { control, reads: 0 };
+        assert!(matches!(
+            fast_rows_stream(&mut input, 0, &mut |_| Ok(())),
+            Some(Err(_))
+        ));
+        assert_eq!(input.reads, 2);
     }
 
     #[test]

@@ -88,6 +88,34 @@ for await (const worksheet of reader) {
 }</code></pre>
 <p class="note">The streaming reader reads its input to the end before it parses, so the compressed file is held in memory (it is usually a fraction of the sheet's size). Each worksheet is then parsed in batches, but shared strings, styles, and other metadata still consume memory. Keep each worksheet within Excel's 1,048,576-row limit.</p>
 
+<h2 id="large-files">Controlled reads and bulk data</h2>
+<pre><code>const controller = new AbortController();
+const workbook = new ExcelJS.Workbook();
+await workbook.xlsx.readFile('input.xlsx', {
+  signal: controller.signal,
+  limits: {maxInputBytes: 50 * 1024 * 1024, maxInflatedBytes: 250 * 1024 * 1024,
+    maxEntryBytes: 100 * 1024 * 1024, maxCells: 1_000_000, maxMergeCells: 1_000_000},
+  onProgress: progress =&gt; console.log(progress.phase, progress.rows),
+});
+
+async function* records() {
+  for (let i = 0; i &lt; 100_000; i++) yield [i, `row ${i}`];
+}
+const writer = new ExcelJS.stream.xlsx.WorkbookWriter({filename: 'bulk.xlsx'});
+const sheet = writer.addWorksheet('Data');
+const count = await writer.writeRows(sheet, records(), {
+  batchSize: 128, signal: controller.signal,
+});
+sheet.commit();
+await writer.commit();
+
+for await (const {worksheet, rows} of ExcelJS.stream.xlsx.readBatches('bulk.xlsx', {
+  batchSize: 1000, signal: controller.signal, limits: {maxCells: 1_000_000},
+})) {
+  console.log(worksheet.name, rows[0].number, rows[0].values[1]);
+}</code></pre>
+<p>Bulk export waits for slow destinations between batches. Finish worksheets in creation order. Batch import avoids Workbook, Row, and Cell objects; values have one-based sparse indices, and empty sheets produce no batches. Compressed input, shared strings, and metadata still occupy memory. Limits are optional, inclusive, and validated; cancellation and progress callback failures clean up native readers. See the <a href="api.html#large-files">full controls and ownership contract</a> before selecting resource bounds.</p>
+
 <h2 id="csv">CSV</h2>
 <pre><code>const workbook = new ExcelJS.Workbook();
 const sheet = await workbook.csv.readFile('data.csv', {

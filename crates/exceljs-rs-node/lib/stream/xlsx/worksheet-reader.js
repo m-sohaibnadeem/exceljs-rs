@@ -164,86 +164,89 @@ class WorksheetReader extends EventEmitter {
       !!(emitHyperlinks || hyperlinks),
       ROW_BATCH
     );
-    for (;;) {
-      const batch = await cursor.next();
-      if (batch === null) {
-        break;
-      }
-      const worksheetEvents = [];
-      // The batch layout is documented at exceljs_rs::EVENT_ROW.
-      let pos = 0;
-      const f64 = () => {
-        const v = batch.readDoubleLE(pos);
-        pos += 8;
-        return v;
-      };
-      const str = () => {
-        const n = batch.readUInt32LE(pos);
-        const v = batch.toString('utf8', pos + 4, pos + 4 + n);
-        pos += 4 + n;
-        return v;
-      };
-      const opt = () => (batch[pos++] === 0 ? undefined : str());
-      while (pos < batch.length) {
-        const eventType = batch[pos++];
-        switch (eventType) {
-          case EVENT_COLS:
-            this._columns = Column.fromModel(codec.decode(str()));
-            break;
-          case EVENT_HYPERLINK: {
-            const ref = opt();
-            const rId = opt();
-            const value = {ref, rId};
-            if (emitHyperlinks) {
-              worksheetEvents.push({eventType: 'hyperlink', value});
-            } else {
-              hyperlinks[value.ref] = value;
-            }
-            break;
-          }
-          case EVENT_NULL_ROW:
-          case EVENT_ROW: {
-            let row = null;
-            if (eventType === EVENT_ROW) {
-              row = new Row(this, f64());
-              if (batch[pos++]) {
-                row.height = f64();
+    try {
+      for (;;) {
+        const batch = await this.workbook._controls.wait(cursor.next());
+        if (batch === null) {
+          break;
+        }
+        const worksheetEvents = [];
+        // The batch layout is documented at exceljs_rs::EVENT_ROW.
+        let pos = 0;
+        const f64 = () => {
+          const v = batch.readDoubleLE(pos);
+          pos += 8;
+          return v;
+        };
+        const str = () => {
+          const n = batch.readUInt32LE(pos);
+          const v = batch.toString('utf8', pos + 4, pos + 4 + n);
+          pos += 4 + n;
+          return v;
+        };
+        const opt = () => (batch[pos++] === 0 ? undefined : str());
+        while (pos < batch.length) {
+          const eventType = batch[pos++];
+          switch (eventType) {
+            case EVENT_COLS:
+              this._columns = Column.fromModel(codec.decode(str()));
+              break;
+            case EVENT_HYPERLINK: {
+              const ref = opt();
+              const rId = opt();
+              const value = {ref, rId};
+              if (emitHyperlinks) {
+                worksheetEvents.push({eventType: 'hyperlink', value});
+              } else {
+                hyperlinks[value.ref] = value;
               }
-              if (batch[pos++]) {
-                const style = styles.getStyleModel(f64());
-                if (style) {
-                  row.style = style;
+              break;
+            }
+            case EVENT_NULL_ROW:
+            case EVENT_ROW: {
+              let row = null;
+              if (eventType === EVENT_ROW) {
+                row = new Row(this, f64());
+                if (batch[pos++]) {
+                  row.height = f64();
+                }
+                if (batch[pos++]) {
+                  const style = styles.getStyleModel(f64());
+                  if (style) {
+                    row.style = style;
+                  }
+                }
+                const n = batch.readUInt32LE(pos);
+                pos += 4;
+                let col = 0;
+                for (let i = 0; i < n; i++) {
+                  const c = {};
+                  const ref = opt();
+                  if (ref !== undefined) c.ref = ref;
+                  c.s = f64();
+                  const t = opt();
+                  if (t !== undefined) c.t = t;
+                  const f = opt();
+                  if (f !== undefined) c.f = f;
+                  const v = opt();
+                  if (v !== undefined) c.v = v;
+                  col = this._readCell(row, c, col, sharedStrings, styles, properties, hyperlinks);
                 }
               }
-              const n = batch.readUInt32LE(pos);
-              pos += 4;
-              let col = 0;
-              for (let i = 0; i < n; i++) {
-                const c = {};
-                const ref = opt();
-                if (ref !== undefined) c.ref = ref;
-                c.s = f64();
-                const t = opt();
-                if (t !== undefined) c.t = t;
-                const f = opt();
-                if (f !== undefined) c.f = f;
-                const v = opt();
-                if (v !== undefined) c.v = v;
-                col = this._readCell(row, c, col, sharedStrings, styles, properties, hyperlinks);
-              }
+              this._dimensions.expandRow(row);
+              worksheetEvents.push({eventType: 'row', value: row});
+              break;
             }
-            this._dimensions.expandRow(row);
-            worksheetEvents.push({eventType: 'row', value: row});
-            break;
+            default:
+              throw new Error(`exceljs-rs: bad worksheet event ${eventType}`);
           }
-          default:
-            throw new Error(`exceljs-rs: bad worksheet event ${eventType}`);
+        }
+        if (worksheetEvents.length > 0) {
+          if (this.workbook._controls.enabled) this.workbook._controls.notify('rows');
+          yield worksheetEvents;
         }
       }
-      if (worksheetEvents.length > 0) {
-        yield worksheetEvents;
-      }
-    }
+    } finally { cursor.close(); }
   }
 
   // The closing </c> of ExcelJS's parse loop; returns the cell's column.

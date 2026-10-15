@@ -20,6 +20,9 @@ mod error;
 mod js;
 mod jsv;
 mod model_json;
+mod read_control;
+#[cfg(test)]
+mod read_control_tests;
 mod reader;
 mod rows;
 mod sheet_data;
@@ -33,6 +36,7 @@ mod zip_thread;
 
 pub use csv::{parse_csv, CsvParseOptions};
 pub use error::{Error, Result};
+pub use read_control::{ControlScope, ReadControl, ReadLimits};
 pub use reader::{
     read as read_xlsx_model, read_events as read_xlsx_events, ReadEvent, ReadOptions, ReadOutput,
 };

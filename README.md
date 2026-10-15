@@ -103,6 +103,101 @@ Keep each worksheet within Excel's limit of 1,048,576 rows. The streaming
 reader buffers compressed input before parsing; memory also depends on
 shared strings, styles, and workbook structure.
 
+The following opt-in extensions preserve the existing ExcelJS APIs:
+
+```js
+const controller = new AbortController();
+await workbook.xlsx.readFile('input.xlsx', {
+  limits: {
+    maxInputBytes: 50 * 1024 * 1024,
+    maxInflatedBytes: 250 * 1024 * 1024,
+    maxEntryBytes: 100 * 1024 * 1024,
+    maxZipEntries: 1000,
+    maxCells: 1_000_000,
+    maxSharedStrings: 200_000,
+    maxTokenBytes: 1024 * 1024,
+    maxValidationCells: 1_000_000,
+    maxMergeCells: 1_000_000,
+  },
+  signal: controller.signal,
+  onProgress: progress => console.log(progress.phase, progress.rows),
+});
+```
+
+`load`, `read`, `readFile`, `WorkbookReader`, and `readBatches` share these
+controls. Every limit is inclusive, accepts a nonnegative safe integer, and
+treats zero as a real bound. Byte limits use bytes; the other limits count
+entries, raw worksheet cells, shared-string items, or cells covered by validation
+and merge declarations. Expansion counts include the master and repeated or
+overlapping declarations. `maxTokenBytes` bounds each raw XML tag, comment,
+CDATA section, declaration, or contiguous text run, including malformed and
+ignored XML parts. It does not bound the combined text of multiple runs.
+
+Controlled reads make an extra preflight pass: every ZIP entry is inflated
+with bounded reads and counted once, including directories, duplicate entries,
+media, and unknown or ignored parts. Actual inflated bytes are measured rather
+than trusting ZIP size headers. Subsequent parsing passes are uncharged.
+The compressed input is still buffered; metadata, shared strings, and document
+objects consume additional memory. Progress counters are monotonic totals;
+`rows` counts parsed rows and may lead the rows delivered to the caller.
+Phases are `input`, `archive`, `rows`, `merges`, and `done`.
+
+```js
+async function* records() {
+  for (let i = 0; i < 100_000; i++) yield [i, `row ${i}`];
+}
+const bulkWriter = new Excel.stream.xlsx.WorkbookWriter({filename: 'bulk.xlsx'});
+const bulkSheet = bulkWriter.addWorksheet('Data');
+const written = await bulkWriter.writeRows(bulkSheet, records(), {
+  batchSize: 128, // rows between compression and destination drain checkpoints
+  signal: controller.signal,
+  onProgress: progress => console.log(progress.rows),
+});
+bulkSheet.commit();
+await bulkWriter.commit();
+console.log(written);
+
+for await (const {worksheet, rows} of Excel.stream.xlsx.readBatches('bulk.xlsx', {
+  batchSize: 1000,
+  limits: {maxInputBytes: 50 * 1024 * 1024, maxCells: 1_000_000},
+  signal: controller.signal,
+})) {
+  console.log(worksheet.name, rows[0].number, rows[0].values[1]);
+}
+```
+
+`writeRows` accepts synchronous or asynchronous iterables of arrays or keyed
+objects accepted by `addRow`. It commits each row and returns the invocation's
+row count; worksheet and workbook finalization remain the caller's responsibility.
+It waits for destination drain before requesting more source rows. Export
+worksheets in creation order and commit each before writing the next. Foreign or
+committed worksheets, concurrent bulk operations, and concurrent workbook commits
+are rejected. A single very large row and accumulated shared strings/styles can
+still consume substantial memory. In-memory output intentionally retains the
+whole archive. Abort or source/progress/destination failure leaves the writer
+unusable; a later `commit()` rejects with the original reason.
+
+`readBatches` uses the native document reader without constructing ExcelJS
+Workbook, Row, or Cell objects. It accepts a filename, readable, Buffer,
+ArrayBuffer, typed array, or DataView. It yields `{worksheet: {id, name}, rows}`
+in workbook sheet order, with at most `batchSize` rows from a single worksheet.
+Empty worksheets yield no batches. Each row is `{number, values}` with sparse,
+one-based values (index zero unused). Dates, cached formula objects, rich text,
+errors, and hyperlinks follow the document reader; formulas are not evaluated.
+Styles and other row/cell metadata are omitted. Merge slaves are omitted and
+only a stored master value is returned. `maxRows`, `maxCols`, and `ignoreNodes`
+are supported; base64 strings are not supported by this filename-oriented API.
+
+Read failures and progress callback exceptions reject and close native cursors;
+early batch-loop exits also close the cursor. Cancellation preserves
+`signal.reason` and stops native parsing cooperatively. Controlled document reads
+can leave a partially loaded workbook, as ordinary reads do. Caller-owned input
+and output streams remain open on abort; the library removes only its own input
+listeners. Owned filename streams are closed. Consume controlled WorkbookReader
+worksheets inside the outer iteration. Export errors invoke the source iterator's
+`return()`; an arbitrary source that ignores cancellation or blocks in `next()`
+may also block `return()`, so cleanup is requested without delaying rejection.
+
 ## Performance
 
 The [benchmark page](https://m-sohaibnadeem.github.io/exceljs-rs/benchmarks.html)

@@ -14,6 +14,7 @@ const StreamBuf = require('../../utils/stream-buf');
 const DefinedNames = require('../../doc/defined-names');
 
 const WorksheetWriter = require('./worksheet-writer');
+const {ReadControls} = require('../../xlsx/read-controls');
 
 const RelType = {
   OfficeDocument: 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument',
@@ -107,19 +108,148 @@ class WorkbookWriter {
       this.stream = options.stream;
     } else if (options.filename) {
       this.stream = fs.createWriteStream(options.filename);
+      this._ownsFile = true;
     } else {
       this.stream = new StreamBuf();
     }
 
+    this._needsDrain = false;
+    this._destinationFailure = new Promise((resolve, reject) => { this._rejectDestination = reject; });
+    this._destinationFailure.catch(() => {});
+    this._onDestinationError = error => this._failDestination(error);
+    this._onDestinationFinish = () => {
+      this._destinationFinished = true;
+      if (this.stream instanceof StreamBuf || (this.stream._writableState && !this.stream._writableState.autoDestroy)) {
+        this._releaseDestinationListeners();
+      }
+    };
+    this._onDestinationClose = () => {
+      if (!this._destinationFinished) this._failDestination(new Error('XLSX destination closed before finish'));
+      this._releaseDestinationListeners();
+    };
+    this.stream.on('error', this._onDestinationError);
+    this.stream.on('finish', this._onDestinationFinish);
+    this.stream.on('close', this._onDestinationClose);
+    this._onDestinationDrain = () => { this._needsDrain = false; };
+    this.stream.on('drain', this._onDestinationDrain);
+
     // these bits can be added right now
     this.promise = Promise.all([this.addThemes(), this.addOfficeRels()]);
+    this.promise.catch(() => {});
   }
 
   // Moves the archive bytes produced so far to the output stream.
   _flush() {
+    if (this._destinationFailed) return;
     const out = this._engine.takeOutput();
     if (out.length) {
-      this.stream.write(out);
+      try {
+        if (this.stream.write(out, error => { if (error) this._failDestination(error); }) === false) this._needsDrain = true;
+      } catch (error) { this._failDestination(error); }
+    }
+  }
+
+  _failDestination(error) {
+    if (this._destinationFailed) return;
+    this._destinationFailed = true;
+    this._destinationError = error;
+    this._rejectDestination(error);
+    try { this._engine.abort(); } catch (_) { /* Keep the original destination/source error. */ }
+    if (this._ownsFile && !this.stream.destroyed) this.stream.destroy();
+  }
+
+  _checkDestination() {
+    if (this._destinationFailed) throw this._destinationError;
+    if (this._destinationFinished || this.stream.destroyed || this.stream.writableEnded) {
+      const error = new Error('XLSX destination is already closed or ended');
+      this._failDestination(error);
+      throw error;
+    }
+  }
+
+  async _waitDrain(controls) {
+    this._checkDestination();
+    if (!this._needsDrain && !this.stream.writableNeedDrain) return;
+    let onDrain;
+    const drained = new Promise(resolve => { onDrain = resolve; this.stream.once('drain', onDrain); });
+    try {
+      await controls.wait(Promise.race([drained, this._destinationFailure]));
+      this._checkDestination();
+    } finally { this.stream.removeListener('drain', onDrain); }
+  }
+
+  _releaseDestinationListeners() {
+    this.stream.removeListener('error', this._onDestinationError);
+    this.stream.removeListener('finish', this._onDestinationFinish);
+    this.stream.removeListener('close', this._onDestinationClose);
+    this.stream.removeListener('drain', this._onDestinationDrain);
+  }
+
+  async _bulkCheckpoint(worksheet, controls) {
+    this._checkDestination();
+    controls.check();
+    worksheet._flushRows();
+    this._engine.checkpoint();
+    this._flush();
+    await this._waitDrain(controls);
+    // Fast destinations and synchronous sources otherwise form only a
+    // microtask chain, preventing timers and I/O from delivering aborts.
+    await controls.wait(Promise.race([new Promise(resolve => setImmediate(resolve)), this._destinationFailure]));
+    this._checkDestination();
+  }
+
+  async writeRows(worksheet, rows, options = {}) {
+    if (!worksheet || worksheet._workbook !== this || this._worksheets[worksheet.id] !== worksheet) {
+      throw new TypeError('worksheet must belong to this WorkbookWriter');
+    }
+    if (worksheet.committed) throw new Error('worksheet is already committed');
+    if (this._bulkActive || this._committing) throw new Error('A bulk export or workbook commit is already in progress');
+    const batchSize = options.batchSize === undefined ? 128 : options.batchSize;
+    if (!Number.isSafeInteger(batchSize) || batchSize <= 0) throw new RangeError('batchSize must be a positive safe integer');
+    if (options.onProgress !== undefined && typeof options.onProgress !== 'function') throw new TypeError('onProgress must be a function');
+    const factory = rows && (rows[Symbol.asyncIterator] || rows[Symbol.iterator]);
+    if (typeof factory !== 'function') throw new TypeError('rows must be a synchronous or asynchronous iterable');
+    this._checkDestination();
+    if (!this._engine.canWriteRows(worksheet.stream.name)) {
+      throw new Error('Commit earlier worksheets before bulk exporting this worksheet');
+    }
+    const controls = new ReadControls({signal: options.signal});
+    this._bulkActive = true;
+    let iterator;
+    let count = 0;
+    try {
+      iterator = factory.call(rows);
+      await controls.wait(Promise.race([this.promise, this._destinationFailure]));
+      await this._bulkCheckpoint(worksheet, controls);
+      for (;;) {
+        await this._waitDrain(controls);
+        if (worksheet.committed) throw new Error('worksheet was committed during bulk export');
+        controls.check();
+        const item = await controls.wait(Promise.race([Promise.resolve().then(() => iterator.next()), this._destinationFailure]));
+        if (item.done) break;
+        worksheet.addRow(item.value).commit();
+        count++;
+        if (count % batchSize === 0) {
+          await this._bulkCheckpoint(worksheet, controls);
+          if (options.onProgress) options.onProgress({phase: 'rows', rows: count});
+          controls.check();
+        }
+      }
+      await this._bulkCheckpoint(worksheet, controls);
+      if (options.onProgress) options.onProgress({phase: 'done', rows: count});
+      controls.check();
+      return count;
+    } catch (error) {
+      this._failDestination(error);
+      if (iterator && iterator.return) {
+        // A source with an unresolved next() may also block return(). Invoke
+        // cleanup without making rejection wait for an uncooperative source.
+        try { Promise.resolve(iterator.return()).catch(() => {}); } catch (_) {}
+      }
+      throw error;
+    } finally {
+      controls.close();
+      this._bulkActive = false;
     }
   }
 
@@ -165,8 +295,23 @@ class WorkbookWriter {
   }
 
   async commit() {
+    if (this._bulkActive) throw new Error('A bulk export is still in progress');
+    if (this._committing) return this._committing;
+    this._committing = this._commit().catch(error => {
+      // A synchronous destination failure aborts native compression. Any
+      // already-scheduled part append may then report a closed archive;
+      // callers must still receive the original destination failure.
+      if (this._destinationFailed) throw this._destinationError;
+      throw error;
+    });
+    return this._committing;
+  }
+
+  async _commit() {
+    this._checkDestination();
     // commit all worksheets, then add suplimentary files
     await this.promise;
+    this._checkDestination();
     await this.addMedia();
     await this._commitWorksheets();
     await Promise.all([
@@ -410,18 +555,28 @@ class WorkbookWriter {
 
   _finalize() {
     return new Promise((resolve, reject) => {
-      this.stream.on('error', reject);
-      this.stream.on('finish', () => {
-        resolve(this);
-      });
+      const cleanup = () => {
+        this.stream.removeListener('error', onError);
+        this.stream.removeListener('finish', onFinish);
+        this.stream.removeListener('close', onClose);
+      };
+      const onError = error => { cleanup(); reject(error); };
+      const onFinish = () => { cleanup(); resolve(this); };
+      const onClose = () => { if (!this._destinationFinished) onError(this._destinationError || new Error('XLSX destination closed before finish')); };
+      this.stream.once('error', onError);
+      this.stream.once('finish', onFinish);
+      this.stream.once('close', onClose);
       try {
+        this._checkDestination();
         this._engine.finalize();
         this._flush();
+        if (this._destinationFailed) throw this._destinationError;
+        this.stream.end();
       } catch (error) {
-        reject(error);
+        this._failDestination(error);
+        onError(error);
         return;
       }
-      this.stream.end();
     });
   }
 }

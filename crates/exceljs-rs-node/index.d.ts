@@ -1459,7 +1459,38 @@ export interface JSZipGeneratorOptions {
 	};
 }
 
-export interface XlsxReadOptions {
+/** Inclusive opt-in bounds. All values are nonnegative safe integers. */
+export interface XlsxReadLimits {
+	maxInputBytes?: number;
+	maxZipEntries?: number;
+	maxEntryBytes?: number;
+	maxInflatedBytes?: number;
+	maxCells?: number;
+	maxSharedStrings?: number;
+	maxTokenBytes?: number;
+	maxValidationCells?: number;
+	maxMergeCells?: number;
+}
+
+export interface XlsxReadProgress {
+	phase: 'input' | 'archive' | 'rows' | 'merges' | 'done';
+	inputBytes: number;
+	inflatedBytes: number;
+	entries: number;
+	cells: number;
+	sharedStrings: number;
+	validationCells: number;
+	mergeCells: number;
+	rows: number;
+}
+
+export interface XlsxReadControls {
+	limits?: XlsxReadLimits;
+	signal?: AbortSignal;
+	onProgress?: (progress: XlsxReadProgress) => void;
+}
+
+export interface XlsxReadOptions extends XlsxReadControls {
 	/** Reject sheets exceeding these row or column counts. Not a memory budget. */
 	maxRows: number;
 	maxCols: number;
@@ -1912,6 +1943,23 @@ export interface Table extends Required<TableProperties> {
 
 export namespace stream {
 	namespace xlsx {
+		interface ReadBatchOptions extends Omit<Partial<XlsxReadOptions>, 'base64'> {
+			/** Maximum rows per batch; positive safe integer, default 1000. */
+			batchSize?: number;
+		}
+		interface ReadBatch {
+			worksheet: {id: number; name: string};
+			rows: Array<{number: number; values: Array<CellValue | undefined>}>;
+		}
+		function readBatches(input: string | import('stream').Readable | Buffer | NodeJS.TypedArray | DataView | ArrayBuffer,
+			options?: ReadBatchOptions): AsyncGenerator<ReadBatch>;
+
+		interface WriteRowsOptions {
+			/** Rows between compression/drain checkpoints; default 128. */
+			batchSize?: number;
+			signal?: AbortSignal;
+			onProgress?: (progress: {phase: 'rows' | 'done'; rows: number}) => void;
+		}
 		interface WorkbookWriterOptions {
 			/**
 			 * Specifies a writable stream to write the XLSX workbook to.
@@ -1974,6 +2022,9 @@ export namespace stream {
 
 		class WorkbookWriter extends Workbook {
 			constructor(options: Partial<WorkbookStreamWriterOptions>);
+			/** Export the active worksheet, awaiting destination drain before pulling more rows. */
+			writeRows(worksheet: Worksheet, rows: Iterable<CellValue[] | {[key: string]: CellValue}> |
+				AsyncIterable<CellValue[] | {[key: string]: CellValue}>, options?: WriteRowsOptions): Promise<number>;
 			// commit all worksheets, then add suplimentary files
 			commit(): Promise<void>;
 			addStyles(): Promise<void>;
@@ -1988,7 +2039,7 @@ export namespace stream {
 		}
 
 
-		interface WorkbookStreamReaderOptions {
+		interface WorkbookStreamReaderOptions extends XlsxReadControls {
 			/**
 			 * @default 'emit'
 			 */

@@ -144,6 +144,25 @@ way.
 
 ## Additional API corrections
 
+- Opt-in XLSX `limits`, `signal`, and `onProgress` controls share native
+  preflight budgets across document reads and WorkbookReader. Defaults and
+  synchronous model/row commit behavior are preserved. Limits include actual
+  compressed/inflated bytes, ZIP entries, raw cells/shared strings, raw XML
+  tokens, and validation/merge expansion counts. See README for units and
+  ownership semantics. Controlled reads still buffer compressed input and
+  retain document metadata; they add a preflight inflation pass.
+- `stream.xlsx.readBatches(input, options?)` returns native reconciled value
+  batches in workbook order without constructing workbook/cell objects.
+  Empty worksheets yield nothing; values are sparse and one-based. Styles,
+  merge slave values, and other editing metadata are omitted. It uses the
+  document reader's existing value behavior and does not evaluate formulas.
+- `WorkbookWriter.writeRows(worksheet, rows, options?)` is an additive async
+  helper that awaits compression and destination drain before pulling more
+  rows. It requires sequential worksheet export; existing `row.commit(): void`
+  remains synchronous. Shared strings/styles and single very large rows can
+  still grow memory. Failed/aborted helpers leave the writer unusable and retain
+  the original failure for `commit()`.
+
 - CSV input and output stream errors reject their promises. CSV literals such
   as `__proto__`, `constructor`, and `toString` remain strings instead of
   being looked up through an object prototype.

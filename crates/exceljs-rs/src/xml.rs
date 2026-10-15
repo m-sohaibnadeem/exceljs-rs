@@ -294,6 +294,7 @@ fn run(
         Ok(go_on)
     };
     loop {
+        crate::read_control::check()?;
         let event = reader.next_event().map_err(|e| xml_error(part, e))?;
         match &event {
             Event::Text(t) => {

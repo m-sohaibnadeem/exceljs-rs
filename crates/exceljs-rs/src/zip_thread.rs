@@ -17,6 +17,7 @@ pub(crate) trait Archive: Send + 'static {
     type Output: Send + 'static;
     fn start(&mut self, name: String) -> Result<()>;
     fn data(&mut self, data: &[u8]) -> Result<()>;
+    fn flush(&mut self) -> Result<()>;
     fn finish(self) -> Result<Self::Output>;
 }
 
@@ -36,6 +37,9 @@ impl<W: Write + std::io::Seek + Send + 'static> Archive for ZipArchiveOut<W> {
     }
     fn finish(self) -> Result<W> {
         Ok(self.zip.finish()?)
+    }
+    fn flush(&mut self) -> Result<()> {
+        Ok(self.zip.flush()?)
     }
 }
 
@@ -58,11 +62,15 @@ impl<W: Write + Send + 'static> Archive for ZipStreamOut<W> {
         self.zip.finish()?;
         Ok(())
     }
+    fn flush(&mut self) -> Result<()> {
+        Ok(self.zip.flush()?)
+    }
 }
 
 enum Msg {
     Start(String),
     Data(Vec<u8>),
+    Barrier(std::sync::mpsc::Sender<()>),
 }
 
 /// An [`Archive`] written by another thread.
@@ -89,6 +97,10 @@ impl<A: Archive> ZipThread<A> {
                     match msg {
                         Msg::Start(name) => a.start(name)?,
                         Msg::Data(data) => a.data(&data)?,
+                        Msg::Barrier(reply) => {
+                            a.flush()?;
+                            let _ = reply.send(());
+                        }
                     }
                 }
                 a.finish()
@@ -112,6 +124,11 @@ impl<A: Archive> ZipThread<A> {
             return match msg {
                 Msg::Start(name) => a.start(name),
                 Msg::Data(data) => a.data(&data),
+                Msg::Barrier(reply) => {
+                    a.flush()?;
+                    let _ = reply.send(());
+                    Ok(())
+                }
             };
         }
         if let Some(tx) = &self.tx {
@@ -145,6 +162,13 @@ impl<A: Archive> ZipThread<A> {
             return Ok(());
         }
         self.send(Msg::Data(data))
+    }
+
+    /// Wait for all prior input to reach the compressed sink.
+    pub fn checkpoint(&mut self) -> Result<()> {
+        let (tx, rx) = std::sync::mpsc::channel();
+        self.send(Msg::Barrier(tx))?;
+        rx.recv().map_err(|_| stopped())
     }
 
     /// Ends the archive, once everything sent is written.

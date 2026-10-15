@@ -1277,8 +1277,12 @@ impl Xform for DataValidationsXform {
                             if r.top != 0.0 && !r.top.is_nan() {
                                 let mut c = r.left;
                                 while c <= r.right {
+                                    crate::read_control::check()
+                                        .map_err(|e| e.exceljs_message())?;
                                     let mut row = r.top;
                                     while row <= r.bottom {
+                                        crate::read_control::check()
+                                            .map_err(|e| e.exceljs_message())?;
                                         let a = format!(
                                             "{}{}",
                                             crate::col_cache::n2l_str(c)?,
@@ -1329,7 +1333,7 @@ impl Xform for DataValidationsXform {
 }
 
 /// `str.split(/\s+/g)` (JS whitespace).
-fn split_whitespace_js(s: &str) -> Vec<String> {
+pub(crate) fn split_whitespace_js(s: &str) -> Vec<String> {
     let mut out = vec![String::new()];
     let mut in_space = false;
     for c in s.chars() {
