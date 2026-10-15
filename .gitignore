@@ -7,6 +7,7 @@ node_modules/
 /compat/upstream/
 # Copied from the repository root when the package is packed.
 /crates/exceljs-rs-node/README.md
+/crates/exceljs-rs-node/CHANGELOG.md
 /crates/exceljs-rs-node/LICENSE
 /crates/exceljs-rs-node/LICENSE-EXCELJS
 /crates/exceljs-rs-node/LICENSE-THIRD-PARTY

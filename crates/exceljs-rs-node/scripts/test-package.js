@@ -27,6 +27,7 @@ try {
     assert.ok(!names.some(file => /(^|\/)(test|scripts|src|artifacts|node_modules)\//.test(file)));
     if (cwd === root) {
       assert.ok(names.includes('native.js'));
+      assert.ok(names.includes('CHANGELOG.md'), 'Root tarball must include release notes');
       assert.ok(!names.some(file => file.endsWith('.node')), 'Root tarball must not bundle every platform');
     }
     archives.push(path.join(temp, result.filename));
@@ -35,7 +36,7 @@ try {
   execFileSync(process.execPath, [cli, 'install', '--ignore-scripts', '--no-audit', '--no-fund', ...archives], {cwd: temp, stdio: 'inherit'});
   execFileSync(process.execPath, ['-e', `
     const assert = require('node:assert/strict');
-    const {Workbook} = require(${JSON.stringify(pkg.name)});
+    const {Workbook, stream} = require(${JSON.stringify(pkg.name)});
     (async () => {
       const workbook = new Workbook();
       const sheet = workbook.addWorksheet('Sales');
@@ -47,6 +48,21 @@ try {
       await saved.xlsx.load(buffer);
       assert.equal(saved.getWorksheet('Sales').getCell('B1').value, 12.5);
       assert.equal(saved.getWorksheet('Sales').getCell('B1').numFmt, '#,##0.00');
+      await assert.rejects(new Workbook().xlsx.load(buffer, {limits: {maxCells: 0}}), /maxCells/);
+      const writer = new stream.xlsx.WorkbookWriter();
+      const bulkSheet = writer.addWorksheet('Bulk');
+      assert.equal(await writer.writeRows(bulkSheet, [[0, false, 'value']], {batchSize: 1}), 1);
+      bulkSheet.commit();
+      await writer.commit();
+      const batches = [];
+      for await (const batch of stream.xlsx.readBatches(writer.stream.toBuffer(), {batchSize: 1})) batches.push(batch);
+      assert.equal(batches.length, 1);
+      assert.equal(batches[0].worksheet.name, 'Bulk');
+      assert.deepEqual(batches[0].rows[0].values.slice(1), [0, false, 'value']);
+      const fs = require('node:fs');
+      const path = require('node:path');
+      const installed = path.dirname(require.resolve(${JSON.stringify(pkg.name)}));
+      assert.ok(fs.readFileSync(path.join(installed, 'CHANGELOG.md'), 'utf8').includes('## ${pkg.version}'));
     })().catch(error => {console.error(error); process.exitCode = 1;});
   `], {cwd: temp, stdio: 'inherit'});
   console.log(`Installed tarball round trip passed for ${suffix} only. This does not verify other release targets.`);

@@ -6,7 +6,7 @@ name: Docs
 on:
   push:
     branches: [main]
-    paths: ['docs/**', 'COMPATIBILITY.md', 'SECURITY.md', 'scripts/check-docs.js', '.github/workflows/pages.yml']
+    paths: ['docs/**', 'CHANGELOG.md', 'COMPATIBILITY.md', 'SECURITY.md', 'scripts/check-docs.js', '.github/workflows/pages.yml']
   workflow_dispatch:
 
 permissions:

@@ -198,6 +198,9 @@ worksheets inside the outer iteration. Export errors invoke the source iterator'
 `return()`; an arbitrary source that ignores cancellation or blocks in `next()`
 may also block `return()`, so cleanup is requested without delaying rejection.
 
+See the [changelog](https://m-sohaibnadeem.github.io/exceljs-rs/changelog.html)
+for release enhancements, fixes, and compatibility notes.
+
 ## Performance
 
 The [benchmark page](https://m-sohaibnadeem.github.io/exceljs-rs/benchmarks.html)

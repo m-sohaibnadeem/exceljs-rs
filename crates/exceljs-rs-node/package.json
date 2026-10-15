@@ -1,6 +1,6 @@
 {
   "name": "exceljs-rs",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "XLSX and CSV for Node.js with a Rust engine and an ExcelJS-compatible API.",
   "keywords": [
     "excel",
@@ -32,7 +32,8 @@
     "native.d.ts",
     "LICENSE-EXCELJS",
     "LICENSE-THIRD-PARTY",
-    "LICENSE-RUST-DEPENDENCIES"
+    "LICENSE-RUST-DEPENDENCIES",
+    "CHANGELOG.md"
   ],
   "napi": {
     "binaryName": "exceljs-rs",
