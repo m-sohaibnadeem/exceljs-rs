@@ -79,11 +79,15 @@ function runFile(file) {
     const why = (result.stderr || result.stdout || '').trim().split('\n').slice(-3).join(' | ');
     return {passes: [], failures: [], pending: [], crashed: `exit ${result.status}: ${why}`};
   }
-  return JSON.parse(fs.readFileSync(reportFile, 'utf8'));
+  const report = JSON.parse(fs.readFileSync(reportFile, 'utf8'));
+  if ((result.status !== 0 || result.error) && !report.failures.length) {
+    report.crashed = `exit ${result.status}: ${result.error ? result.error.message : (result.stderr || '').trim()}`;
+  }
+  return report;
 }
 
 const results = {};
-const totals = {passed: 0, failed: 0, notRun: 0, pending: 0};
+const totals = {passed: 0, failed: 0, notRun: 0, pending: 0, crashed: 0};
 for (const file of selected) {
   const r = runFile(file);
   const expected = baseline[file];
@@ -94,6 +98,7 @@ for (const file of selected) {
   totals.failed += r.failures.length;
   totals.pending += r.pending.length;
   totals.notRun += notRun;
+  if (r.crashed) totals.crashed++;
   const bad = r.failures.length || notRun || r.crashed;
   const extra = [notRun ? `${notRun} not run` : '', r.crashed ? `CRASH ${r.crashed}` : '']
     .filter(Boolean)
@@ -104,7 +109,7 @@ for (const file of selected) {
 }
 
 console.log(
-  `\ntarget=${target}  passing=${totals.passed} failing=${totals.failed} not-run=${totals.notRun} pending=${totals.pending}`
+  `\ntarget=${target}  passing=${totals.passed} failing=${totals.failed} not-run=${totals.notRun} pending=${totals.pending} crashed=${totals.crashed}`
 );
 
 if (writeBaseline) {
@@ -127,4 +132,4 @@ if (jsonOut) {
   }
   fs.writeFileSync(jsonOut, `${JSON.stringify({totals, files: out}, null, 2)}\n`);
 }
-process.exit(totals.failed || totals.notRun ? 1 : 0);
+process.exit(totals.failed || totals.notRun || totals.crashed ? 1 : 0);
