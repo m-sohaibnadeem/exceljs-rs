@@ -1,6 +1,6 @@
 {
   "name": "exceljs-rs",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "XLSX and CSV for Node.js with a Rust engine and an ExcelJS-compatible API.",
   "keywords": [
     "excel",

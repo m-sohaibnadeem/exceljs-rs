@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.2.0 - 2026-10-15
+## 0.2.1 - 2026-10-15
 
 ### Enhancements
 
@@ -26,6 +26,8 @@
   is pulled or a batch is delivered.
 - Fail compatibility runs when a spec process crashes, including after writing
   its test report.
+- Make native reader shutdown tests reliable when metadata has already completed
+  on fast platforms, while still requiring worker shutdown and validation abort.
 
 ### Validation and limits
 
@@ -37,6 +39,12 @@
   pass. Batch import omits styles, editing metadata, and merged slave values.
   Bulk exports require sequential worksheets; shared strings and individual
   large rows can still grow memory. See README for API and ownership details.
+
+## 0.2.0 - not published
+
+The release tag was retained after optimized macOS arm64 validation exposed a
+timing-dependent test assertion. No npm packages were published for this version;
+0.2.1 includes the enhancements and the corrected regression.
 
 ## 0.1.0
 
